@@ -1,0 +1,49 @@
+[ExecutionRunner] start_execution called for run 2
+[ExecutionRunner] task created for run 2
+[ExecutionRunner] Starting execution for run 2 (35 steps)
+[ExecutionRunner] Run 2 step 1/35: Phase Shift at 2800 MHz = -125.6 -> pass
+[ExecutionRunner] Run 2 step 2/35: Phase Shift at 3100 MHz = -8.54 -> pass
+[ExecutionRunner] Run 2 step 3/35: Phase Offset = -111.27 -> fail
+[ExecutionRunner] Run 2 step 4/35: Return Loss at 2800 MHz = -14.14 -> pass
+[ExecutionRunner] Run 2 step 5/35: Return Loss at 2900 MHz = -13.75 -> pass
+[ExecutionRunner] Run 2 step 6/35: Return Loss at 3000 MHz = -14.24 -> pass
+[ExecutionRunner] Run 2 step 7/35: Return Loss at 3100 MHz = -13.46 -> pass
+[ExecutionRunner] Run 2 step 8/35: Output Power at 2800 MHz (42.50 dBm) = 60.13 -> pass
+[ExecutionRunner] Run 2 step 9/35: Output Power at 2900 MHz (42.50 dBm) = 60.3 -> pass
+[ExecutionRunner] Run 2 step 10/35: Output Power at 3000 MHz (42.50 dBm) = 59.52 -> pass
+[ExecutionRunner] Run 2 step 11/35: Output Power at 3100 MHz (42.50 dBm) = 59.95 -> pass
+[ExecutionRunner] Run 2 step 12/35: Output Power at 2800 MHz (41.50 dBm) = 60.68 -> pass
+[ExecutionRunner] Run 2 step 13/35: Output Power at 2900 MHz (41.50 dBm) = 60.02 -> pass
+[ExecutionRunner] Run 2 step 14/35: Output Power at 3000 MHz (41.50 dBm) = 57.34 -> fail
+[ExecutionRunner] Run 2 step 15/35: Output Power at 3100 MHz (41.50 dBm) = 60.33 -> pass
+[ExecutionRunner] Run 2 step 16/35: Output Power at 2800 MHz (43.50 dBm) = 60.2 -> pass
+[ExecutionRunner] Run 2 step 17/35: Output Power at 2900 MHz (43.50 dBm) = 60.14 -> pass
+[ExecutionRunner] Run 2 step 18/35: Output Power at 3000 MHz (43.50 dBm) = 60.58 -> pass
+[ExecutionRunner] Run 2 step 19/35: Output Power at 3100 MHz (43.50 dBm) = 60.28 -> pass
+[ExecutionRunner] Run 2 step 20/35: Total Current at 2800 MHz (43.50 dBm) = 7.548 -> pass
+[ExecutionRunner] Run 2 step 21/35: Total Current at 2900 MHz (43.50 dBm) = 7.477 -> pass
+[ExecutionRunner] Run 2 step 22/35: Total Current at 3000 MHz (43.50 dBm) = 7.689 -> pass
+[ExecutionRunner] Run 2 step 23/35: Total Current at 3100 MHz (43.50 dBm) = 8.019 -> pass
+[ExecutionRunner] Run 2 step 24/35: Spectrum at 2800 MHz = -49.4 -> record_only
+[ExecutionRunner] Run 2 step 25/35: Spectrum at 2900 MHz = -45.9 -> record_only
+[ExecutionRunner] Run 2 step 26/35: Spectrum at 3000 MHz = -46.7 -> record_only
+[ExecutionRunner] Run 2 step 27/35: Spectrum at 3100 MHz = -48.7 -> record_only
+[ExecutionRunner] Run 2 step 28/35: BITE P1 Between Pulse = 0.192 -> pass
+[ExecutionRunner] Run 2 step 29/35: BITE P2 Between Pulse = 0.348 -> pass
+[ExecutionRunner] Run 2 step 30/35: BITE P1 During Pulse = 6.633 -> pass
+[ExecutionRunner] Run 2 step 31/35: BITE P2 During Pulse = 6.779 -> pass
+[ExecutionRunner] Run 2 step 32/35: Spring Finger Contact Resistance #1 = 50.021 -> pass
+[ExecutionRunner] Run 2 step 33/35: Spring Finger Contact Resistance #2 = 50.12 -> pass
+[ExecutionRunner] Run 2 step 34/35: Spring Finger Contact Resistance #3 = 49.985 -> pass
+[ExecutionRunner] Run 2 step 35/35: Spring Finger Contact Resistance #4 = 50.056 -> pass
+[ExecutionRunner] Run 2 execution loop finished
+[ExecutionRunner] start_execution called for run 3
+[ExecutionRunner] task created for run 3
+[ExecutionRunner] Starting execution for run 3 (6 steps)
+[ExecutionRunner] Run 3 step 1/6: Return Loss Cal Check at 2800 MHz = -20.96 -> pass
+[ExecutionRunner] Run 3 step 2/6: Return Loss Cal Check at 2900 MHz = -21.17 -> pass
+[ExecutionRunner] Run 3 step 3/6: Return Loss Cal Check at 3000 MHz = -20.7 -> pass
+[ExecutionRunner] Run 3 step 4/6: Return Loss Cal Check at 3100 MHz = -15.41 -> fail
+[ExecutionRunner] Run 3 step 5/6: Power Meter Reference Cal = 59.78 -> fail
+[ExecutionRunner] Run 3 step 6/6: Cable Loss Verification = -3.73 -> pass
+[ExecutionRunner] Run 3 execution loop finished

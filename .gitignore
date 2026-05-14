@@ -1,0 +1,46 @@
+# ATP source documents (binary, tracked externally)
+*.docx
+P004-unpacked/
+unpacked_p005/
+unpacked_ifrecvr/
+*_extracted.txt
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+venv/
+.venv/
+*.db
+
+# Node
+node_modules/
+dist/
+.vite/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+
+# Claude Code working state (worktrees, screenshots, scheduled tasks)
+.claude/worktrees/
+.claude/*.png
+.claude/scheduled_tasks.lock
+
+# Backend runtime artifacts
+*.db.bak.*
+uvicorn-debug.log
+uvicorn-debug.log.err
+
+# Vercel local state
+.vercel/

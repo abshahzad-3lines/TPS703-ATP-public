@@ -1,0 +1,15 @@
+# Render Blueprint — one-click deployment for TPS-703 ATP
+# https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: tps703-atp
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    autoDeploy: true
+    plan: free
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: PYTHON_ENV
+        value: production

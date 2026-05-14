@@ -1,0 +1,22 @@
+# Dependencies
+node_modules
+venv
+__pycache__
+
+# Version control
+.git
+
+# Database files
+*.db
+
+# Environment / secrets
+.env
+
+# IDE and tooling
+.claude
+
+# Documents
+*.docx
+
+# Build artifacts (rebuilt inside Docker)
+dist
