@@ -211,5 +211,246 @@ async def init_db() -> None:
         except Exception:
             pass  # Column already exists
 
+        # ------------------------------------------------------------------
+        # Phase 10 — ATP authoring schema (v2)
+        # ------------------------------------------------------------------
+        # v1 stored procedures + steps in `test_procedures` / `test_steps`.
+        # v2 introduces a revisioned, state-machine-governed authoring layer:
+        # `atp_definitions` + `atp_steps`. v1 tables remain intact because
+        # `test_runs` / `test_results` still FK into them (existing runs
+        # must keep resolving). New runs created after Phase 10 cutover
+        # source their step list from `atp_steps` via the linked v1 row.
+        # ------------------------------------------------------------------
+
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS atp_definitions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                subsystem_id INTEGER NOT NULL REFERENCES subsystems(id),
+                legacy_procedure_id INTEGER REFERENCES test_procedures(id),
+                code TEXT NOT NULL,
+                revision TEXT NOT NULL DEFAULT 'A',
+                name TEXT NOT NULL,
+                section_ref TEXT,
+                sequence_order INTEGER,
+                warmup_minutes INTEGER DEFAULT 0,
+                default_pulse_width_us REAL,
+                requires_calibration INTEGER DEFAULT 0,
+                state TEXT NOT NULL DEFAULT 'draft'
+                    CHECK(state IN ('draft','in_review','approved','published','superseded')),
+                source TEXT NOT NULL DEFAULT 'authored'
+                    CHECK(source IN ('migrated','authored','imported_docx','imported_pdf','ai_extracted')),
+                parent_definition_id INTEGER REFERENCES atp_definitions(id),
+                created_by INTEGER REFERENCES users(id),
+                created_at TEXT DEFAULT (datetime('now')),
+                updated_at TEXT DEFAULT (datetime('now')),
+                published_at TEXT,
+                published_by INTEGER REFERENCES users(id),
+                superseded_at TEXT,
+                superseded_by_definition_id INTEGER REFERENCES atp_definitions(id),
+                notes TEXT,
+                UNIQUE(code, revision)
+            )
+        """)
+
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS atp_steps (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                definition_id INTEGER NOT NULL REFERENCES atp_definitions(id) ON DELETE CASCADE,
+                legacy_step_id INTEGER REFERENCES test_steps(id),
+                step_number INTEGER NOT NULL,
+                name TEXT NOT NULL,
+                step_type TEXT NOT NULL,
+                instrument TEXT,
+                frequency_mhz REAL,
+                input_power_dbm REAL,
+                pulse_width_us REAL,
+                mux_address TEXT,
+                mux_sample_time_us REAL,
+                bus_address TEXT,
+                bus_data TEXT,
+                bus_rw TEXT,
+                limit_type TEXT,
+                limit_min REAL,
+                limit_max REAL,
+                limit_nominal REAL,
+                limit_tolerance REAL,
+                unit TEXT,
+                instructions TEXT,
+                safety_warning TEXT,
+                is_optional INTEGER DEFAULT 0,
+                is_record_only INTEGER DEFAULT 0,
+                UNIQUE(definition_id, step_number)
+            )
+        """)
+
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS atp_state_transitions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                definition_id INTEGER NOT NULL REFERENCES atp_definitions(id) ON DELETE CASCADE,
+                from_state TEXT,
+                to_state TEXT NOT NULL,
+                user_id INTEGER REFERENCES users(id),
+                comment TEXT,
+                transitioned_at TEXT DEFAULT (datetime('now'))
+            )
+        """)
+
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS atp_approvals (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                definition_id INTEGER NOT NULL REFERENCES atp_definitions(id) ON DELETE CASCADE,
+                approver_id INTEGER NOT NULL REFERENCES users(id),
+                decision TEXT NOT NULL CHECK(decision IN ('approve','reject')),
+                comment TEXT,
+                decided_at TEXT DEFAULT (datetime('now')),
+                UNIQUE(definition_id, approver_id)
+            )
+        """)
+
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS atp_imports (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                definition_id INTEGER REFERENCES atp_definitions(id) ON DELETE SET NULL,
+                filename TEXT NOT NULL,
+                mime_type TEXT,
+                file_size INTEGER,
+                source_type TEXT NOT NULL CHECK(source_type IN ('docx','pdf')),
+                uploaded_by INTEGER REFERENCES users(id),
+                uploaded_at TEXT DEFAULT (datetime('now')),
+                extracted_text TEXT,
+                extraction_status TEXT NOT NULL DEFAULT 'uploaded'
+                    CHECK(extraction_status IN ('uploaded','extracted','linked','failed')),
+                extraction_error TEXT
+            )
+        """)
+
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS atp_simulations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                definition_id INTEGER NOT NULL REFERENCES atp_definitions(id) ON DELETE CASCADE,
+                golden_run_id INTEGER REFERENCES test_runs(id),
+                pass_count INTEGER NOT NULL DEFAULT 0,
+                fail_count INTEGER NOT NULL DEFAULT 0,
+                skipped_count INTEGER NOT NULL DEFAULT 0,
+                summary_json TEXT,
+                simulated_at TEXT DEFAULT (datetime('now')),
+                simulated_by INTEGER REFERENCES users(id)
+            )
+        """)
+
+        # Helpful indices
+        await db.execute(
+            "CREATE INDEX IF NOT EXISTS idx_atp_def_code ON atp_definitions(code)"
+        )
+        await db.execute(
+            "CREATE INDEX IF NOT EXISTS idx_atp_def_state ON atp_definitions(state)"
+        )
+        await db.execute(
+            "CREATE INDEX IF NOT EXISTS idx_atp_def_subsystem ON atp_definitions(subsystem_id)"
+        )
+        await db.execute(
+            "CREATE INDEX IF NOT EXISTS idx_atp_steps_def ON atp_steps(definition_id, step_number)"
+        )
+        await db.execute(
+            "CREATE INDEX IF NOT EXISTS idx_atp_transitions_def ON atp_state_transitions(definition_id)"
+        )
+        await db.execute(
+            "CREATE INDEX IF NOT EXISTS idx_atp_approvals_def ON atp_approvals(definition_id)"
+        )
+
+        # ------------------------------------------------------------------
+        # Idempotent v1 → v2 backfill
+        # ------------------------------------------------------------------
+        # Migrate every test_procedure that does not yet have a matching
+        # atp_definitions row (matched by legacy_procedure_id). Each becomes
+        # rev 'A', state 'published' (the existing v1 data is the authority
+        # of record), source 'migrated', linked back via legacy_procedure_id
+        # so test_runs can keep resolving step lists either way.
+        # ------------------------------------------------------------------
+        cursor = await db.execute(
+            """
+            SELECT tp.id, tp.subsystem_id, tp.code, tp.name, tp.section_ref,
+                   tp.sequence_order, tp.warmup_minutes, tp.default_pulse_width_us,
+                   tp.requires_calibration
+            FROM test_procedures tp
+            LEFT JOIN atp_definitions ad ON ad.legacy_procedure_id = tp.id
+            WHERE ad.id IS NULL
+            """
+        )
+        legacy_procs = await cursor.fetchall()
+
+        for proc in legacy_procs:
+            insert_cursor = await db.execute(
+                """
+                INSERT INTO atp_definitions (
+                    subsystem_id, legacy_procedure_id, code, revision, name,
+                    section_ref, sequence_order, warmup_minutes,
+                    default_pulse_width_us, requires_calibration,
+                    state, source, created_by, published_at, published_by, notes
+                ) VALUES (?, ?, ?, 'A', ?, ?, ?, ?, ?, ?, 'published', 'migrated',
+                          NULL, datetime('now'), NULL, ?)
+                """,
+                (
+                    proc[1],  # subsystem_id
+                    proc[0],  # legacy_procedure_id
+                    proc[2],  # code
+                    proc[3],  # name
+                    proc[4],  # section_ref
+                    proc[5],  # sequence_order
+                    proc[6],  # warmup_minutes
+                    proc[7],  # default_pulse_width_us
+                    proc[8],  # requires_calibration
+                    f"Migrated from v1 test_procedures.id={proc[0]}",
+                ),
+            )
+            new_def_id = insert_cursor.lastrowid
+
+            # Record the migration as a synthetic state transition so the
+            # provenance is captured in atp_state_transitions, not just
+            # the notes field.
+            await db.execute(
+                """
+                INSERT INTO atp_state_transitions
+                    (definition_id, from_state, to_state, user_id, comment)
+                VALUES (?, NULL, 'published', NULL, 'v1 schema migration')
+                """,
+                (new_def_id,),
+            )
+
+            # Copy steps
+            step_cursor = await db.execute(
+                """
+                SELECT id, step_number, name, step_type, instrument,
+                       frequency_mhz, input_power_dbm, pulse_width_us,
+                       mux_address, mux_sample_time_us, bus_address, bus_data,
+                       bus_rw, limit_type, limit_min, limit_max, limit_nominal,
+                       limit_tolerance, unit, instructions, safety_warning,
+                       is_optional, is_record_only
+                FROM test_steps WHERE procedure_id = ?
+                ORDER BY step_number
+                """,
+                (proc[0],),
+            )
+            steps = await step_cursor.fetchall()
+            for s in steps:
+                await db.execute(
+                    """
+                    INSERT INTO atp_steps (
+                        definition_id, legacy_step_id, step_number, name,
+                        step_type, instrument, frequency_mhz, input_power_dbm,
+                        pulse_width_us, mux_address, mux_sample_time_us,
+                        bus_address, bus_data, bus_rw, limit_type, limit_min,
+                        limit_max, limit_nominal, limit_tolerance, unit,
+                        instructions, safety_warning, is_optional, is_record_only
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (new_def_id, *tuple(s)),
+                )
+
         await db.commit()
-        print(f"Database initialized at {DB_PATH} — 12 tables ready")
+        if legacy_procs:
+            print(
+                f"Phase-10 migration: {len(legacy_procs)} v1 procedure(s) "
+                f"copied into atp_definitions as revision 'A' / 'published'"
+            )
+        print(f"Database initialized at {DB_PATH} — 18 tables ready")
