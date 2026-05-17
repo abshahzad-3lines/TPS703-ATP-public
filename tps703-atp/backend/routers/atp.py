@@ -23,7 +23,16 @@ from pydantic import BaseModel, Field
 from auth.dependencies import get_current_user, require_role
 from auth.models import UserInDB
 from database import get_db_connection
-from services import atp_bundle, atp_state_machine, atp_validator
+from services import (
+    ai_atp,
+    ai_grok,
+    atp_bundle,
+    atp_diff,
+    atp_importer,
+    atp_simulation,
+    atp_state_machine,
+    atp_validator,
+)
 from services.audit import log_audit
 
 
@@ -880,6 +889,542 @@ async def export_definition(
         media_type="application/json",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+# ============================================================================
+# Document import (DOCX / PDF) — Wave 3b
+# ============================================================================
+
+
+class ImportPreviewOut(BaseModel):
+    import_id: int
+    filename: str
+    source_type: str
+    text_preview: str
+    guessed_metadata: dict
+    heuristic_steps: list[dict]
+    status: str
+
+
+class FinaliseImportBody(BaseModel):
+    subsystem_id: int
+    code: str
+    name: str
+    revision: str = "A"
+    section_ref: str | None = None
+    use_heuristic_steps: bool = True
+
+
+@router.post(
+    "/imports/upload",
+    response_model=ImportPreviewOut,
+    dependencies=[Depends(require_role("engineer"))],
+)
+async def upload_import(
+    file: UploadFile = File(...),
+    user: UserInDB = Depends(get_current_user),
+):
+    """Upload a customer-supplied .docx or .pdf, extract text, return a
+    preview + heuristic step split. No ATP draft is created yet — the
+    caller follows up with ``/imports/{id}/finalize``.
+    """
+    data = await file.read()
+    name = (file.filename or "").lower()
+    if name.endswith(".docx"):
+        source_type = "docx"
+    elif name.endswith(".pdf"):
+        source_type = "pdf"
+    else:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "Only .docx and .pdf are supported.",
+        )
+
+    try:
+        if source_type == "docx":
+            text = atp_importer.extract_text_from_docx(data)
+        else:
+            text = atp_importer.extract_text_from_pdf(data)
+        extraction_status = "extracted"
+        extraction_error: str | None = None
+    except Exception as e:  # noqa: BLE001
+        text = ""
+        extraction_status = "failed"
+        extraction_error = str(e)
+
+    guessed = atp_importer.guess_metadata(text) if text else {}
+    heuristic_steps = atp_importer.heuristic_extract_steps(text) if text else []
+
+    db = await get_db_connection()
+    try:
+        cur = await db.execute(
+            """
+            INSERT INTO atp_imports
+                (filename, mime_type, file_size, source_type, uploaded_by,
+                 extracted_text, extraction_status, extraction_error)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                file.filename, file.content_type, len(data), source_type,
+                user.id, text, extraction_status, extraction_error,
+            ),
+        )
+        import_id = cur.lastrowid
+        await db.commit()
+    finally:
+        await db.close()
+
+    await log_audit(
+        user.id, "atp_import_upload", "atp_import", import_id,
+        f"{source_type}: {file.filename} ({len(data)} bytes)",
+    )
+
+    return ImportPreviewOut(
+        import_id=import_id,
+        filename=file.filename or "",
+        source_type=source_type,
+        text_preview=text[:2000] + ("…" if len(text) > 2000 else ""),
+        guessed_metadata=guessed,
+        heuristic_steps=heuristic_steps,
+        status=extraction_status,
+    )
+
+
+@router.post(
+    "/imports/{import_id}/finalize",
+    response_model=DefinitionSummary,
+    dependencies=[Depends(require_role("engineer"))],
+)
+async def finalize_import(
+    import_id: int,
+    body: FinaliseImportBody,
+    user: UserInDB = Depends(get_current_user),
+):
+    """Materialize an upload into a draft ATP. Optionally populates steps
+    from the heuristic split done at upload time.
+    """
+    db = await get_db_connection()
+    try:
+        cur = await db.execute(
+            "SELECT * FROM atp_imports WHERE id = ?", (import_id,)
+        )
+        imp = await cur.fetchone()
+        if imp is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "import not found")
+        if imp["extraction_status"] != "extracted":
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                f"import is in status '{imp['extraction_status']}'; cannot finalize.",
+            )
+
+        source_marker = "imported_docx" if imp["source_type"] == "docx" else "imported_pdf"
+        cur = await db.execute(
+            """
+            INSERT INTO atp_definitions (
+                subsystem_id, code, revision, name, section_ref,
+                state, source, created_by, notes
+            ) VALUES (?, ?, ?, ?, ?, 'draft', ?, ?, ?)
+            """,
+            (
+                body.subsystem_id, body.code, body.revision, body.name,
+                body.section_ref, source_marker, user.id,
+                f"Imported from {imp['filename']} (import #{import_id})",
+            ),
+        )
+        new_def_id = cur.lastrowid
+
+        if body.use_heuristic_steps:
+            steps = atp_importer.heuristic_extract_steps(imp["extracted_text"] or "")
+            for s in steps:
+                await db.execute(
+                    """
+                    INSERT INTO atp_steps
+                        (definition_id, step_number, name, step_type, instructions)
+                    VALUES (?, ?, ?, ?, ?)
+                    """,
+                    (new_def_id, s["step_number"], s["name"], s["step_type"], s.get("instructions")),
+                )
+
+        await db.execute(
+            """
+            INSERT INTO atp_state_transitions
+                (definition_id, from_state, to_state, user_id, comment)
+            VALUES (?, NULL, 'draft', ?, ?)
+            """,
+            (new_def_id, user.id, f"finalized from import #{import_id}"),
+        )
+        await db.execute(
+            "UPDATE atp_imports SET definition_id = ?, extraction_status = 'linked' WHERE id = ?",
+            (new_def_id, import_id),
+        )
+        await db.commit()
+
+        cur = await db.execute(
+            """
+            SELECT ad.*, COUNT(s.id) AS step_count
+            FROM atp_definitions ad
+            LEFT JOIN atp_steps s ON s.definition_id = ad.id
+            WHERE ad.id = ?
+            GROUP BY ad.id
+            """,
+            (new_def_id,),
+        )
+        row = await cur.fetchone()
+        await log_audit(
+            user.id, "atp_import_finalize", "atp_definition", new_def_id,
+            f"from import #{import_id}",
+        )
+        return _row_to_summary(row, row["step_count"])
+    finally:
+        await db.close()
+
+
+@router.get("/imports/{import_id}/text")
+async def get_import_text(import_id: int):
+    """Return the full extracted text of an upload (used by the AI extractor)."""
+    db = await get_db_connection()
+    try:
+        cur = await db.execute(
+            "SELECT id, filename, source_type, extracted_text, definition_id, "
+            "extraction_status FROM atp_imports WHERE id = ?",
+            (import_id,),
+        )
+        row = await cur.fetchone()
+        if row is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "import not found")
+        return {
+            "id": row["id"],
+            "filename": row["filename"],
+            "source_type": row["source_type"],
+            "definition_id": row["definition_id"],
+            "extraction_status": row["extraction_status"],
+            "text": row["extracted_text"] or "",
+        }
+    finally:
+        await db.close()
+
+
+# ============================================================================
+# Revision diff — Wave 4b
+# ============================================================================
+
+
+@router.get("/definitions/{base_id}/diff/{target_id}")
+async def diff_revisions(base_id: int, target_id: int):
+    db = await get_db_connection()
+    try:
+        try:
+            return await atp_diff.diff_definitions(db, base_id, target_id)
+        except ValueError as e:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, str(e))
+    finally:
+        await db.close()
+
+
+# ============================================================================
+# Golden-unit simulation — Wave 4c
+# ============================================================================
+
+
+@router.post(
+    "/definitions/{definition_id}/simulate",
+    dependencies=[Depends(require_role("engineer"))],
+)
+async def simulate(
+    definition_id: int,
+    user: UserInDB = Depends(get_current_user),
+):
+    db = await get_db_connection()
+    try:
+        try:
+            summary = await atp_simulation.simulate_definition(db, definition_id, user)
+        except ValueError as e:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, str(e))
+        await log_audit(
+            user.id, "atp_simulate", "atp_definition", definition_id,
+            f"pass={summary['pass_count']} fail={summary['fail_count']} skip={summary['skipped_count']}",
+        )
+        return summary
+    finally:
+        await db.close()
+
+
+@router.get("/definitions/{definition_id}/simulations")
+async def list_simulations(definition_id: int):
+    db = await get_db_connection()
+    try:
+        cur = await db.execute(
+            """
+            SELECT id, pass_count, fail_count, skipped_count, simulated_at,
+                   simulated_by
+            FROM atp_simulations
+            WHERE definition_id = ?
+            ORDER BY id DESC
+            """,
+            (definition_id,),
+        )
+        rows = await cur.fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        await db.close()
+
+
+# ============================================================================
+# AI features (Grok) — Wave 5
+# ============================================================================
+
+
+class AIExtractBody(BaseModel):
+    """Body for ai-extract: either reference an import_id or send text inline."""
+    import_id: int | None = None
+    text: str | None = None
+    subsystem_id: int
+    code: str
+    name: str
+    revision: str = "A"
+    replace_existing_steps: bool = False
+    # When ``import_id`` is given AND ``definition_id`` is null, a new draft
+    # is created. When ``definition_id`` is given, steps are added to it
+    # (or replace its steps when ``replace_existing_steps`` is True).
+    definition_id: int | None = None
+
+
+def _ai_error_to_http(exc: Exception) -> HTTPException:
+    if isinstance(exc, ai_grok.GrokNotConfigured):
+        return HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "AI feature requires XAI_API_KEY in the backend environment.",
+        )
+    return HTTPException(status.HTTP_502_BAD_GATEWAY, f"Grok error: {exc}")
+
+
+@router.post(
+    "/ai/extract-from-document",
+    response_model=DefinitionSummary,
+    dependencies=[Depends(require_role("engineer"))],
+)
+async def ai_extract_from_document(
+    body: AIExtractBody,
+    user: UserInDB = Depends(get_current_user),
+):
+    """AI-extract structured steps from an uploaded document (or inline
+    text) and persist them as a new draft (or append to an existing draft).
+    """
+    text = body.text
+    db = await get_db_connection()
+    try:
+        if body.import_id and not text:
+            cur = await db.execute(
+                "SELECT extracted_text FROM atp_imports WHERE id = ?",
+                (body.import_id,),
+            )
+            row = await cur.fetchone()
+            if row is None:
+                raise HTTPException(status.HTTP_404_NOT_FOUND, "import not found")
+            text = row["extracted_text"] or ""
+        if not text:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                "Either import_id (with extracted text) or 'text' must be provided.",
+            )
+
+        try:
+            steps = await ai_atp.extract_steps_from_text(text)
+        except Exception as e:  # noqa: BLE001
+            raise _ai_error_to_http(e)
+
+        if body.definition_id:
+            # Append (or replace) steps on existing draft
+            await _require_draft(db, body.definition_id)
+            def_id = body.definition_id
+            if body.replace_existing_steps:
+                await db.execute(
+                    "DELETE FROM atp_steps WHERE definition_id = ?", (def_id,)
+                )
+                start_num = 1
+            else:
+                cur = await db.execute(
+                    "SELECT COALESCE(MAX(step_number), 0) AS m FROM atp_steps "
+                    "WHERE definition_id = ?",
+                    (def_id,),
+                )
+                start_num = (await cur.fetchone())["m"] + 1
+        else:
+            # Create new draft
+            cur = await db.execute(
+                """
+                INSERT INTO atp_definitions
+                    (subsystem_id, code, revision, name, state, source,
+                     created_by, notes)
+                VALUES (?, ?, ?, ?, 'draft', 'ai_extracted', ?, ?)
+                """,
+                (
+                    body.subsystem_id, body.code, body.revision, body.name,
+                    user.id,
+                    f"AI-extracted from import #{body.import_id}"
+                    if body.import_id else "AI-extracted from inline text",
+                ),
+            )
+            def_id = cur.lastrowid
+            await db.execute(
+                """
+                INSERT INTO atp_state_transitions
+                    (definition_id, from_state, to_state, user_id, comment)
+                VALUES (?, NULL, 'draft', ?, 'AI extract')
+                """,
+                (def_id, user.id),
+            )
+            start_num = 1
+
+        # Persist steps (re-numbered against start_num)
+        for offset, s in enumerate(steps):
+            await db.execute(
+                """
+                INSERT INTO atp_steps (
+                    definition_id, step_number, name, step_type, instrument,
+                    frequency_mhz, input_power_dbm, pulse_width_us,
+                    limit_min, limit_max, limit_nominal, limit_tolerance,
+                    unit, instructions, safety_warning
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    def_id, start_num + offset,
+                    s.get("name") or f"Step {start_num + offset}",
+                    s.get("step_type") or "manual_record",
+                    s.get("instrument"),
+                    s.get("frequency_mhz"),
+                    s.get("input_power_dbm"),
+                    s.get("pulse_width_us"),
+                    s.get("limit_min"),
+                    s.get("limit_max"),
+                    s.get("limit_nominal"),
+                    s.get("limit_tolerance"),
+                    s.get("unit"),
+                    s.get("instructions"),
+                    s.get("safety_warning"),
+                ),
+            )
+        if body.import_id:
+            await db.execute(
+                "UPDATE atp_imports SET definition_id = ?, extraction_status = 'linked' WHERE id = ?",
+                (def_id, body.import_id),
+            )
+        await db.execute(
+            "UPDATE atp_definitions SET updated_at = datetime('now') WHERE id = ?",
+            (def_id,),
+        )
+        await db.commit()
+
+        cur = await db.execute(
+            """
+            SELECT ad.*, COUNT(s.id) AS step_count
+            FROM atp_definitions ad
+            LEFT JOIN atp_steps s ON s.definition_id = ad.id
+            WHERE ad.id = ?
+            GROUP BY ad.id
+            """,
+            (def_id,),
+        )
+        row = await cur.fetchone()
+        await log_audit(
+            user.id, "atp_ai_extract", "atp_definition", def_id,
+            f"{len(steps)} steps extracted",
+        )
+        return _row_to_summary(row, row["step_count"])
+    finally:
+        await db.close()
+
+
+@router.post(
+    "/definitions/{definition_id}/steps/{step_id}/ai/safety-warning",
+    dependencies=[Depends(require_role("engineer"))],
+)
+async def ai_safety_warning(
+    definition_id: int,
+    step_id: int,
+    user: UserInDB = Depends(get_current_user),
+):
+    db = await get_db_connection()
+    try:
+        cur = await db.execute(
+            "SELECT * FROM atp_steps WHERE id = ? AND definition_id = ?",
+            (step_id, definition_id),
+        )
+        step = await cur.fetchone()
+        if step is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "step not found")
+        try:
+            warning = await ai_atp.draft_safety_warning(dict(step))
+        except Exception as e:  # noqa: BLE001
+            raise _ai_error_to_http(e)
+
+        await log_audit(
+            user.id, "atp_ai_safety", "atp_step", step_id,
+            f"len={len(warning or '')}",
+        )
+        return {"safety_warning": warning}
+    finally:
+        await db.close()
+
+
+@router.post(
+    "/definitions/{definition_id}/ai/order-review",
+    dependencies=[Depends(require_role("engineer"))],
+)
+async def ai_order_review(
+    definition_id: int,
+    user: UserInDB = Depends(get_current_user),
+):
+    db = await get_db_connection()
+    try:
+        cur = await db.execute(
+            "SELECT * FROM atp_steps WHERE definition_id = ? ORDER BY step_number",
+            (definition_id,),
+        )
+        steps = [dict(r) for r in await cur.fetchall()]
+        if not steps:
+            return {"concerns": []}
+        try:
+            concerns = await ai_atp.review_step_ordering(steps)
+        except Exception as e:  # noqa: BLE001
+            raise _ai_error_to_http(e)
+        await log_audit(
+            user.id, "atp_ai_order_review", "atp_definition", definition_id,
+            f"{len(concerns)} concern(s)",
+        )
+        return {"concerns": concerns}
+    finally:
+        await db.close()
+
+
+@router.post(
+    "/definitions/{base_id}/diff/{target_id}/ai/summary",
+    dependencies=[Depends(require_role("engineer"))],
+)
+async def ai_revision_impact_summary(
+    base_id: int,
+    target_id: int,
+    user: UserInDB = Depends(get_current_user),
+):
+    db = await get_db_connection()
+    try:
+        try:
+            diff = await atp_diff.diff_definitions(db, base_id, target_id)
+        except ValueError as e:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, str(e))
+    finally:
+        await db.close()
+
+    try:
+        text = await ai_atp.summarize_revision_impact(diff)
+    except Exception as e:  # noqa: BLE001
+        raise _ai_error_to_http(e)
+
+    await log_audit(
+        user.id, "atp_ai_impact_summary", "atp_definition", target_id,
+        f"base={base_id} target={target_id}",
+    )
+    return {"summary": text, "diff": diff}
 
 
 @router.post(
