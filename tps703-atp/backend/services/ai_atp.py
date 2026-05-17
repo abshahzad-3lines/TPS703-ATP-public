@@ -1,6 +1,6 @@
 """Phase 10 — AI features for ATP authoring.
 
-Four endpoints, each backed by Grok via ``ai_grok.chat_json`` /
+Four endpoints, each backed by Groq via ``ai_groq.chat_json`` /
 ``chat_text``:
 
 1. ``extract_steps_from_text`` — turn an uploaded ATP document into a
@@ -12,7 +12,7 @@ Four endpoints, each backed by Grok via ``ai_grok.chat_json`` /
 4. ``summarize_revision_impact`` — turn a ``atp_diff`` result into a
    plain-English engineering-change-record paragraph.
 
-Every helper is a thin wrapper that builds a prompt, calls Grok, and
+Every helper is a thin wrapper that builds a prompt, calls Groq, and
 returns a typed dict. Routers add the audit_log entry + persist any
 changes.
 """
@@ -21,10 +21,10 @@ from __future__ import annotations
 
 import json
 
-from services import ai_grok
+from services import ai_groq
 
 
-# Step types the validator knows about — given to Grok so it doesn't
+# Step types the validator knows about — given to Groq so it doesn't
 # invent new ones.
 KNOWN_STEP_TYPES = [
     "output_power", "input_current", "current", "resistance", "voltage",
@@ -83,17 +83,17 @@ Rules:
 
 async def extract_steps_from_text(text: str) -> list[dict]:
     system = _EXTRACT_SYSTEM.format(step_types=KNOWN_STEP_TYPES)
-    # Trim very long docs — Grok's context is generous but we don't need
+    # Trim very long docs — Groq's context is generous but we don't need
     # the back half of a 400-page doc to extract steps.
     snippet = text[:60_000]
-    payload = await ai_grok.chat_json(
+    payload = await ai_groq.chat_json(
         system=system,
         user=f"Document text:\n\n{snippet}",
         max_tokens=8000,
     )
     steps = payload.get("steps", [])
     if not isinstance(steps, list):
-        raise ai_grok.GrokError(f"Grok returned non-list 'steps': {type(steps)}")
+        raise ai_groq.GroqError(f"Groq returned non-list 'steps': {type(steps)}")
 
     # Defensive re-number
     out: list[dict] = []
@@ -138,7 +138,7 @@ async def draft_safety_warning(step: dict) -> str | None:
             )
         }, indent=2)
     )
-    payload = await ai_grok.chat_json(
+    payload = await ai_groq.chat_json(
         system=_SAFETY_SYSTEM, user=user, temperature=0.3, max_tokens=300,
     )
     warning = payload.get("warning")
@@ -181,7 +181,7 @@ async def review_step_ordering(steps: list[dict]) -> list[dict]:
             "input_power_dbm", "limit_min", "limit_max", "unit",
         )} for s in steps
     ], indent=2)
-    payload = await ai_grok.chat_json(
+    payload = await ai_groq.chat_json(
         system=_ORDER_SYSTEM, user=user, max_tokens=2000,
     )
     concerns = payload.get("concerns", [])
@@ -207,7 +207,7 @@ Do not invent rationale that isn't justified by the diff.
 
 
 async def summarize_revision_impact(diff: dict) -> str:
-    return await ai_grok.chat_text(
+    return await ai_groq.chat_text(
         system=_IMPACT_SYSTEM,
         user="Diff JSON:\n" + json.dumps(diff, indent=2),
         temperature=0.4,
