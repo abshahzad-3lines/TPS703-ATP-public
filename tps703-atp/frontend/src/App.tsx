@@ -9,6 +9,9 @@ import ResultDetailPage from '@/pages/ResultDetailPage'
 import AuditTrailPage from '@/pages/AuditTrailPage'
 import EquipmentPage from '@/pages/EquipmentPage'
 import BenchDispatcher from '@/pages/BenchDispatcher'
+import AtpAuthorPage from '@/pages/AtpAuthorPage'
+import AtpDefinitionPage from '@/pages/AtpDefinitionPage'
+import AtpDiffPage from '@/pages/AtpDiffPage'
 import AppShell from '@/components/layout/AppShell'
 import ProtectedRoute from '@/components/layout/ProtectedRoute'
 import type { AuthState } from '@/contexts/AuthContext'
@@ -138,6 +141,36 @@ function AppRoutes() {
           <ProtectedRoute isAuthenticated={auth.isAuthenticated} userRole={auth.user?.role} minRole="technician">
             <AppShell auth={auth} onLogout={handleLogout}>
               <BenchDispatcher />
+            </AppShell>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/atp-author"
+        element={
+          <ProtectedRoute isAuthenticated={auth.isAuthenticated} userRole={auth.user?.role}>
+            <AppShell auth={auth} onLogout={handleLogout}>
+              <AtpAuthorPage />
+            </AppShell>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/atp-author/diff/:baseId/:targetId"
+        element={
+          <ProtectedRoute isAuthenticated={auth.isAuthenticated} userRole={auth.user?.role}>
+            <AppShell auth={auth} onLogout={handleLogout}>
+              <AtpDiffPage />
+            </AppShell>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/atp-author/:definitionId"
+        element={
+          <ProtectedRoute isAuthenticated={auth.isAuthenticated} userRole={auth.user?.role}>
+            <AppShell auth={auth} onLogout={handleLogout}>
+              <AtpDefinitionPage />
             </AppShell>
           </ProtectedRoute>
         }

@@ -18,6 +18,7 @@ import {
   ChevronLeft,
   ChevronRight,
   LogOut,
+  FileText,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import logoImg from '@/assets/logo.png'
@@ -32,6 +33,7 @@ const navItems: {
   { path: '/test-setup', label: 'Test Setup', icon: Settings2 },
   { path: '/test-execution', label: 'Test Execution', icon: Play },
   { path: '/results', label: 'Results', icon: ClipboardList },
+  { path: '/atp-author', label: 'ATP Author', icon: FileText, minRole: 'engineer' },
   { path: '/equipment', label: 'Test Equipment', icon: Zap, minRole: 'technician' },
   { path: '/instrument-bench', label: 'Instrument Bench', icon: Activity, minRole: 'technician' },
   { path: '/admin', label: 'Admin', icon: ShieldCheck, minRole: 'admin' },
