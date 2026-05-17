@@ -25,7 +25,7 @@ from auth.models import UserInDB
 from database import get_db_connection
 from services import (
     ai_atp,
-    ai_grok,
+    ai_groq,
     atp_bundle,
     atp_diff,
     atp_importer,
@@ -1170,7 +1170,7 @@ async def list_simulations(definition_id: int):
 
 
 # ============================================================================
-# AI features (Grok) — Wave 5
+# AI features (Groq) — Wave 5
 # ============================================================================
 
 
@@ -1190,12 +1190,12 @@ class AIExtractBody(BaseModel):
 
 
 def _ai_error_to_http(exc: Exception) -> HTTPException:
-    if isinstance(exc, ai_grok.GrokNotConfigured):
+    if isinstance(exc, ai_groq.GroqNotConfigured):
         return HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
             "AI feature requires XAI_API_KEY in the backend environment.",
         )
-    return HTTPException(status.HTTP_502_BAD_GATEWAY, f"Grok error: {exc}")
+    return HTTPException(status.HTTP_502_BAD_GATEWAY, f"Groq error: {exc}")
 
 
 @router.post(
