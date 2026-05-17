@@ -295,15 +295,22 @@ async def init_db() -> None:
             )
         """)
 
+        # An ATP can ping-pong between draft and in_review multiple times;
+        # we keep the full historical record of every decision on every
+        # round. `review_round` is the 1-based ordinal of the in_review
+        # transition the decision belongs to. UNIQUE(definition_id,
+        # approver_id, review_round) blocks double-voting within a round
+        # while allowing fresh votes on later rounds.
         await db.execute("""
             CREATE TABLE IF NOT EXISTS atp_approvals (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 definition_id INTEGER NOT NULL REFERENCES atp_definitions(id) ON DELETE CASCADE,
                 approver_id INTEGER NOT NULL REFERENCES users(id),
+                review_round INTEGER NOT NULL DEFAULT 1,
                 decision TEXT NOT NULL CHECK(decision IN ('approve','reject')),
                 comment TEXT,
                 decided_at TEXT DEFAULT (datetime('now')),
-                UNIQUE(definition_id, approver_id)
+                UNIQUE(definition_id, approver_id, review_round)
             )
         """)
 
@@ -358,15 +365,26 @@ async def init_db() -> None:
             "CREATE INDEX IF NOT EXISTS idx_atp_approvals_def ON atp_approvals(definition_id)"
         )
 
-        # ------------------------------------------------------------------
-        # Idempotent v1 → v2 backfill
-        # ------------------------------------------------------------------
-        # Migrate every test_procedure that does not yet have a matching
-        # atp_definitions row (matched by legacy_procedure_id). Each becomes
-        # rev 'A', state 'published' (the existing v1 data is the authority
-        # of record), source 'migrated', linked back via legacy_procedure_id
-        # so test_runs can keep resolving step lists either way.
-        # ------------------------------------------------------------------
+        await db.commit()
+        print(f"Database initialized at {DB_PATH} — 18 tables ready")
+
+
+async def backfill_atp_definitions() -> int:
+    """Idempotent v1 → v2 backfill — call AFTER seed_all() so v1 tables exist.
+
+    Migrates every ``test_procedure`` that does not yet have a matching
+    ``atp_definitions`` row (matched by ``legacy_procedure_id``). Each
+    becomes revision ``'A'``, state ``'published'`` (existing v1 data is the
+    authority of record), source ``'migrated'``, linked back via
+    ``legacy_procedure_id`` so the existing ``test_runs`` flow keeps working.
+    Re-running this against an already-migrated DB is a no-op.
+
+    Returns the number of v1 procedures migrated this run.
+    """
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("PRAGMA foreign_keys = ON")
+        db.row_factory = aiosqlite.Row
+
         cursor = await db.execute(
             """
             SELECT tp.id, tp.subsystem_id, tp.code, tp.name, tp.section_ref,
@@ -391,23 +409,20 @@ async def init_db() -> None:
                           NULL, datetime('now'), NULL, ?)
                 """,
                 (
-                    proc[1],  # subsystem_id
-                    proc[0],  # legacy_procedure_id
-                    proc[2],  # code
-                    proc[3],  # name
-                    proc[4],  # section_ref
-                    proc[5],  # sequence_order
-                    proc[6],  # warmup_minutes
-                    proc[7],  # default_pulse_width_us
-                    proc[8],  # requires_calibration
-                    f"Migrated from v1 test_procedures.id={proc[0]}",
+                    proc["subsystem_id"],
+                    proc["id"],
+                    proc["code"],
+                    proc["name"],
+                    proc["section_ref"],
+                    proc["sequence_order"],
+                    proc["warmup_minutes"],
+                    proc["default_pulse_width_us"],
+                    proc["requires_calibration"],
+                    f"Migrated from v1 test_procedures.id={proc['id']}",
                 ),
             )
             new_def_id = insert_cursor.lastrowid
 
-            # Record the migration as a synthetic state transition so the
-            # provenance is captured in atp_state_transitions, not just
-            # the notes field.
             await db.execute(
                 """
                 INSERT INTO atp_state_transitions
@@ -417,7 +432,6 @@ async def init_db() -> None:
                 (new_def_id,),
             )
 
-            # Copy steps
             step_cursor = await db.execute(
                 """
                 SELECT id, step_number, name, step_type, instrument,
@@ -429,7 +443,7 @@ async def init_db() -> None:
                 FROM test_steps WHERE procedure_id = ?
                 ORDER BY step_number
                 """,
-                (proc[0],),
+                (proc["id"],),
             )
             steps = await step_cursor.fetchall()
             for s in steps:
@@ -450,7 +464,7 @@ async def init_db() -> None:
         await db.commit()
         if legacy_procs:
             print(
-                f"Phase-10 migration: {len(legacy_procs)} v1 procedure(s) "
+                f"Phase-10 backfill: {len(legacy_procs)} v1 procedure(s) "
                 f"copied into atp_definitions as revision 'A' / 'published'"
             )
-        print(f"Database initialized at {DB_PATH} — 18 tables ready")
+        return len(legacy_procs)
