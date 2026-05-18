@@ -19,10 +19,16 @@ services:
         generateValue: true
       - key: PYTHON_ENV
         value: production
+      # Render free tier does not allow attaching persistent disks, so the
+      # DB lives in the container's writable layer at /app/atp.db. Data
+      # is wiped on every redeploy/restart, but seed_all() repopulates
+      # the 4 subsystems + 23 migrated ATPs from the seed module on boot.
+      # On a paid plan, change DB_PATH to /data/atp.db and uncomment the
+      # `disk:` block at the bottom of this service.
       - key: DB_PATH
-        value: /data/atp.db
+        value: /app/atp.db
       - key: CORS_ORIGINS
-        value: https://tps703-atp.onrender.com
+        value: https://tps703-atp-cu9j.onrender.com
       # GROQ_API_KEY must be set manually via the Render dashboard or CLI
       # after the first deploy — it isn't in render.yaml because the file
       # is committed to git. The AI endpoints return 503 until it's set.
@@ -30,7 +36,8 @@ services:
         sync: false
       - key: GROQ_MODEL
         value: llama-3.3-70b-versatile
-    disk:
-      name: atp-data
-      mountPath: /data
-      sizeGB: 1
+    # Persistent disk — paid plans only. Uncomment when upgrading.
+    # disk:
+    #   name: atp-data
+    #   mountPath: /data
+    #   sizeGB: 1
