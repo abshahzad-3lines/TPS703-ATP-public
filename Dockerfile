@@ -36,8 +36,10 @@ COPY tps703-atp/backend/ ./
 # Copy built frontend into backend/static so FastAPI can serve it
 COPY --from=frontend-build /app/frontend/dist ./static
 
-# Expose the port uvicorn will listen on
+# Render injects $PORT at runtime; locally we fall back to 8000.
+ENV PORT=8000
 EXPOSE 8000
 
-# Run with uvicorn — bind to 0.0.0.0 so Docker networking works
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run with uvicorn — bind to 0.0.0.0 so Docker networking works.
+# Use sh -c so $PORT is expanded from the env at start time.
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}"]
