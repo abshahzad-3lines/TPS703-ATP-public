@@ -12,6 +12,8 @@ import BenchDispatcher from '@/pages/BenchDispatcher'
 import AtpAuthorPage from '@/pages/AtpAuthorPage'
 import AtpDefinitionPage from '@/pages/AtpDefinitionPage'
 import AtpDiffPage from '@/pages/AtpDiffPage'
+import SparamListPage from '@/pages/SparamListPage'
+import SparamDetailPage from '@/pages/SparamDetailPage'
 import AppShell from '@/components/layout/AppShell'
 import ProtectedRoute from '@/components/layout/ProtectedRoute'
 import type { AuthState } from '@/contexts/AuthContext'
@@ -171,6 +173,26 @@ function AppRoutes() {
           <ProtectedRoute isAuthenticated={auth.isAuthenticated} userRole={auth.user?.role}>
             <AppShell auth={auth} onLogout={handleLogout}>
               <AtpDefinitionPage />
+            </AppShell>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/sparam"
+        element={
+          <ProtectedRoute isAuthenticated={auth.isAuthenticated} userRole={auth.user?.role}>
+            <AppShell auth={auth} onLogout={handleLogout}>
+              <SparamListPage />
+            </AppShell>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/sparam/:sweepId"
+        element={
+          <ProtectedRoute isAuthenticated={auth.isAuthenticated} userRole={auth.user?.role}>
+            <AppShell auth={auth} onLogout={handleLogout}>
+              <SparamDetailPage />
             </AppShell>
           </ProtectedRoute>
         }
