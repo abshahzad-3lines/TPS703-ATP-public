@@ -32,6 +32,7 @@ from services import (
     atp_simulation,
     atp_state_machine,
     atp_validator,
+    rate_limit,
 )
 from services.audit import log_audit
 
@@ -1210,6 +1211,7 @@ async def ai_extract_from_document(
     """AI-extract structured steps from an uploaded document (or inline
     text) and persist them as a new draft (or append to an existing draft).
     """
+    rate_limit.check_and_record(user)
     text = body.text
     db = await get_db_connection()
     try:
@@ -1344,6 +1346,7 @@ async def ai_safety_warning(
     step_id: int,
     user: UserInDB = Depends(get_current_user),
 ):
+    rate_limit.check_and_record(user)
     db = await get_db_connection()
     try:
         cur = await db.execute(
@@ -1375,6 +1378,7 @@ async def ai_order_review(
     definition_id: int,
     user: UserInDB = Depends(get_current_user),
 ):
+    rate_limit.check_and_record(user)
     db = await get_db_connection()
     try:
         cur = await db.execute(
@@ -1406,6 +1410,7 @@ async def ai_revision_impact_summary(
     target_id: int,
     user: UserInDB = Depends(get_current_user),
 ):
+    rate_limit.check_and_record(user)
     db = await get_db_connection()
     try:
         try:
