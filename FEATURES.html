@@ -67,6 +67,84 @@
   .hero-meta .card a { color: #93c5fd; text-decoration: none; }
   .hero-meta .card a:hover { text-decoration: underline; }
 
+  section.intro {
+    max-width: 1100px;
+    margin: 36px auto -12px;
+    padding: 0 28px;
+  }
+  section.intro h2 {
+    font-size: 20px; margin: 0 0 12px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  section.intro h2::before {
+    content: "";
+    display: inline-block;
+    width: 4px; height: 20px; border-radius: 2px;
+    background: var(--accent);
+  }
+  section.intro .intro-grid {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 18px;
+    align-items: start;
+  }
+  section.intro .panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 18px 22px;
+    box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+  }
+  section.intro .panel h3 {
+    margin: 0 0 8px;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+  }
+  section.intro .panel p { margin: 0 0 10px; font-size: 14px; }
+  section.intro .panel p:last-child { margin-bottom: 0; }
+  section.intro .panel ol, section.intro .panel ul {
+    margin: 0; padding-left: 20px; font-size: 14px;
+  }
+  section.intro .panel li { margin-bottom: 4px; }
+  section.intro .legend {
+    display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;
+  }
+  section.intro .legend .chip {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 3px 9px; border-radius: 999px;
+    border: 1px solid currentColor;
+  }
+  section.intro .legend .chip.ai { color: var(--ai); background: #f5f3ff; }
+  section.intro .legend .chip.ui { color: var(--p10); background: var(--accent-soft); }
+  section.intro .legend .chip.api { color: var(--good); background: #ecfdf5; }
+  section.intro .legend .chip.backend { color: var(--muted); background: #f1f5f9; border-color: var(--line); }
+  section.intro pre {
+    margin: 8px 0 0;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: var(--code-bg);
+    color: var(--code-ink);
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 11px;
+    line-height: 1.55;
+    overflow-x: auto;
+  }
+  section.intro code {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 12px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: #f1f5f9;
+    color: var(--ink);
+    border: 1px solid var(--line);
+  }
+  @media (max-width: 880px) {
+    section.intro .intro-grid { grid-template-columns: 1fr; }
+  }
+
   nav.toc {
     position: sticky; top: 0; z-index: 10;
     background: rgba(255,255,255,0.92);
@@ -230,8 +308,104 @@
   </div>
 </header>
 
+<section class="intro" id="intro">
+  <h2>About this guide</h2>
+  <div class="intro-grid">
+    <div class="panel">
+      <h3>What this is</h3>
+      <p>
+        A single-page test catalog for every feature delivered in Phase 10 (ATP
+        authoring) and Phase 11 (S-parameter workflows) of the
+        <strong>TPS-703 ATP Automation System</strong> — the web app that runs
+        Acceptance Test Procedures for Northrop Grumman's S-band radar
+        transmitter subsystems (CAGE Code 97942).
+      </p>
+      <p>
+        Use it as a checklist when reviewing a deployment: each card pairs a
+        feature with the exact steps to verify it works end-to-end. The
+        feature list mirrors the original Phase 10 / Phase 11 work items, so
+        you can tick each one off without cross-referencing tickets or code.
+      </p>
+    </div>
+
+    <div class="panel">
+      <h3>What the app does (one paragraph)</h3>
+      <p>
+        Replaces paper-based ATP workflows with a digital system that
+        enforces test sequencing, captures live instrument measurements,
+        validates them against specification limits, and produces
+        tamper-evident certificates. Phase 10 added a versioned ATP authoring
+        layer with peer review and AI-assisted drafting; Phase 11 added
+        S-parameter (.sNp) import, visualisation, fixture de-embedding,
+        golden-unit compare, and AI sweep analysis.
+      </p>
+    </div>
+
+    <div class="panel">
+      <h3>How to use this guide</h3>
+      <ol>
+        <li>
+          Open the production URL above and log in with
+          <code>admin</code> / <code>admin123</code>.
+          (If it takes ~30 s on first hit, that's the Render free-tier
+          waking up — see the cold-start tip at the bottom.)
+        </li>
+        <li>
+          Pick a feature card from any section. Follow the
+          <strong>How to test</strong> steps top-to-bottom.
+        </li>
+        <li>
+          UI features list exact click paths (sidebar entries, tab names,
+          button labels). API features include curl snippets you can paste
+          straight into a terminal.
+        </li>
+        <li>
+          AI features call Groq (<code>llama-3.3-70b-versatile</code>). They
+          may take 1–4 s per call. If you see <code>503</code> the
+          <code>GROQ_API_KEY</code> isn't set; if you see <code>429</code>
+          the per-user rate limit (20/min, 200/day) kicked in.
+        </li>
+      </ol>
+    </div>
+
+    <div class="panel">
+      <h3>Reading the cards</h3>
+      <p>
+        Each card has a coloured badge indicating where the feature lives:
+      </p>
+      <div class="legend">
+        <span class="chip ui">UI</span>
+        <span class="chip api">API</span>
+        <span class="chip ai">AI</span>
+        <span class="chip backend">backend</span>
+      </div>
+      <p style="margin-top:10px">
+        Feature sections are colour-tagged: <span style="color:var(--p10)"><strong>Phase 10</strong></span>
+        in blue, <span style="color:var(--p11)"><strong>Phase 11</strong></span> in cyan,
+        <span style="color:var(--infra)"><strong>Infrastructure</strong></span> in amber.
+      </p>
+    </div>
+
+    <div class="panel" style="grid-column: 1 / -1;">
+      <h3>Need an API token for the curl examples?</h3>
+      <p>Run this in your terminal once — it stores the bearer token in <code>$TOK</code> for the rest of your shell session:</p>
+      <pre>URL=https://tps703-atp-cu9j.onrender.com
+TOK=$(curl -s -X POST $URL/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"admin123"}' \
+  | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
+echo "Token captured, length $(echo -n $TOK | wc -c | tr -d ' ')"</pre>
+      <p style="margin-top:10px">
+        Every <code>curl</code> in this guide assumes <code>$URL</code> and <code>$TOK</code> are
+        already set. The token is valid for 15 minutes — re-run if you get a 401.
+      </p>
+    </div>
+  </div>
+</section>
+
 <nav class="toc">
   <div class="wrap">
+    <a href="#intro">Intro</a>
     <a href="#phase-10">Phase 10 — ATP Authoring</a>
     <a href="#phase-10-ai">Phase 10 AI</a>
     <a href="#phase-11">Phase 11 — S-Parameters</a>
