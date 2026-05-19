@@ -216,6 +216,66 @@
   article.feature .badge.api { color: var(--good); background: #ecfdf5; }
   article.feature .badge.backend { color: var(--muted); background: #f1f5f9; border-color: var(--line); }
 
+  article.feature .proof {
+    border-top: 1px dashed var(--line);
+    padding-top: 10px;
+    font-size: 12px;
+  }
+  article.feature .proof .label {
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    color: var(--good); letter-spacing: 0.06em; margin-bottom: 6px;
+    display: flex; align-items: center; gap: 4px;
+  }
+  article.feature .proof .label::before {
+    content: "✓";
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--good); color: #fff;
+    font-size: 9px; font-weight: 700;
+  }
+  article.feature .proof a.shot {
+    display: block;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    overflow: hidden;
+    background: #f8fafc;
+    transition: border-color 120ms, transform 120ms;
+  }
+  article.feature .proof a.shot:hover {
+    border-color: var(--accent);
+    transform: translateY(-1px);
+  }
+  article.feature .proof a.shot img {
+    display: block;
+    width: 100%;
+    height: auto;
+    object-fit: cover;
+    max-height: 180px;
+  }
+  article.feature .proof .caption {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 6px;
+    font-style: italic;
+  }
+  article.feature .proof a.dl {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 4px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    background: #ecfdf5;
+    color: var(--good);
+    border: 1px solid #a7f3d0;
+    text-decoration: none;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 11px;
+  }
+  article.feature .proof a.dl:hover {
+    background: #d1fae5;
+  }
+
   article.feature .test {
     border-top: 1px dashed var(--line);
     padding-top: 10px;
@@ -431,6 +491,13 @@ echo "Token captured, length $(echo -n $TOK | wc -c | tr -d ' ')"</pre>
 
       <article class="feature">
         <h3><span class="badge ui">UI</span> Authoring UI <span class="id">/atp-author</span></h3>
+        <div class="proof">
+          <div class="label">Proof</div>
+          <a class="shot" href="/proof/p10-authoring-list.png" target="_blank">
+            <img src="/proof/p10-authoring-list.png" alt="ATP Author list showing a draft + in-review revision">
+          </a>
+          <div class="caption">Draft list: <code>PROOF-K245</code> rev A in <em>in review</em>, validation passes.</div>
+        </div>
         <div class="test">
           <div class="label">How to test</div>
           <ol>
@@ -444,6 +511,13 @@ echo "Token captured, length $(echo -n $TOK | wc -c | tr -d ' ')"</pre>
 
       <article class="feature">
         <h3><span class="badge backend">SM</span> State machine</h3>
+        <div class="proof">
+          <div class="label">Proof</div>
+          <a class="shot" href="/proof/p10-history.png" target="_blank">
+            <img src="/proof/p10-history.png" alt="History tab — full transition chain">
+          </a>
+          <div class="caption">Full transition chain: <code>— → draft → in_review → approved → published</code> with timestamps + per-row user.</div>
+        </div>
         <div class="test">
           <div class="label">How to test</div>
           <ol>
@@ -457,6 +531,13 @@ echo "Token captured, length $(echo -n $TOK | wc -c | tr -d ' ')"</pre>
 
       <article class="feature">
         <h3><span class="badge backend">Auth</span> Peer review (two-user gate)</h3>
+        <div class="proof">
+          <div class="label">Proof</div>
+          <a class="shot" href="/proof/p10-peer-review.png" target="_blank">
+            <img src="/proof/p10-peer-review.png" alt="Peer engineer sees Approve / Reject buttons">
+          </a>
+          <div class="caption">Signed in as <em>peer</em> engineer: action bar shows <strong>Approve</strong> + <strong>Reject</strong>. Admin sidebar entry hidden (engineer role). Author <code>admin</code> would only see <strong>Withdraw</strong>.</div>
+        </div>
         <div class="test">
           <div class="label">How to test</div>
           <ol>
@@ -473,6 +554,13 @@ location.reload();</pre>
 
       <article class="feature">
         <h3><span class="badge backend">Validator</span> Step-schema validation</h3>
+        <div class="proof">
+          <div class="label">Proof</div>
+          <a class="shot" href="/proof/p10-validation.png" target="_blank">
+            <img src="/proof/p10-validation.png" alt="Red validation banner listing 3 issues">
+          </a>
+          <div class="caption">3 issues flagged on an incomplete <code>output_power</code> step: no limits, missing <code>frequency_mhz</code>, missing <code>input_power_dbm</code>.</div>
+        </div>
         <div class="test">
           <div class="label">How to test</div>
           <ol>
@@ -485,6 +573,13 @@ location.reload();</pre>
 
       <article class="feature">
         <h3><span class="badge backend">Sim</span> Golden-unit simulation</h3>
+        <div class="proof">
+          <div class="label">Proof</div>
+          <a class="shot" href="/proof/p10-simulation.png" target="_blank">
+            <img src="/proof/p10-simulation.png" alt="Simulation tab — pass/fail/skipped tiles + per-step results table">
+          </a>
+          <div class="caption">Synthetic dry-run via SimulatorDriver against a 2-step ATP; tiles show pass/fail/skipped counts and the per-step measured-value table.</div>
+        </div>
         <div class="test">
           <div class="label">How to test</div>
           <ol>
@@ -497,6 +592,13 @@ location.reload();</pre>
 
       <article class="feature">
         <h3><span class="badge ui">UI</span> DOCX / PDF import</h3>
+        <div class="proof">
+          <div class="label">Proof</div>
+          <a class="shot" href="/proof/p10-import-dialog.png" target="_blank">
+            <img src="/proof/p10-import-dialog.png" alt="Import dialog with file picker + AI extract option">
+          </a>
+          <div class="caption">Import dialog with the file picker plus three downstream options (heuristic split / empty / AI-extract via Groq).</div>
+        </div>
         <div class="test">
           <div class="label">How to test</div>
           <ol>
@@ -510,6 +612,13 @@ location.reload();</pre>
 
       <article class="feature">
         <h3><span class="badge ui">UI</span> Revision diff</h3>
+        <div class="proof">
+          <div class="label">Proof</div>
+          <a class="shot" href="/proof/p10-diff-with-ai.png" target="_blank">
+            <img src="/proof/p10-diff-with-ai.png" alt="Diff page with AI impact summary + step changes table">
+          </a>
+          <div class="caption">Side-by-side diff of rev <code>A → B</code>: AI impact summary card on top, then per-field metadata changes, then the modified-step table with old/new limits.</div>
+        </div>
         <div class="test">
           <div class="label">How to test</div>
           <ol>
@@ -523,6 +632,16 @@ location.reload();</pre>
 
       <article class="feature">
         <h3><span class="badge api">API</span> Export / import signed bundle</h3>
+        <div class="proof">
+          <div class="label">Proof</div>
+          <a class="dl" href="/proof/p10-export-bundle.json" target="_blank" download>
+            ⬇ p10-export-bundle.json
+          </a>
+          <div class="caption">
+            Real bundle generated by <code>GET /api/atp/definitions/1/export</code>. Open it — bottom block has the
+            <code>HMAC-SHA256</code> signature alongside the SHA-256 of the canonical payload.
+          </div>
+        </div>
         <div class="test">
           <div class="label">How to test</div>
           <ol>
@@ -553,6 +672,13 @@ location.reload();</pre>
 
       <article class="feature">
         <h3><span class="badge ai">AI</span> Extract steps from document</h3>
+        <div class="proof">
+          <div class="label">Proof</div>
+          <a class="shot" href="/proof/p10-ai-extract.png" target="_blank">
+            <img src="/proof/p10-ai-extract.png" alt="AI-extracted draft with structured fields">
+          </a>
+          <div class="caption">Groq extracted 3 typed steps from raw text. Source badge: <code>AI-extracted</code>. Output power step correctly mapped <code>frequency_mhz=2900</code>, <code>limit_min=58</code>, <code>limit_max=60</code>.</div>
+        </div>
         <div class="test">
           <div class="label">How to test</div>
           <ol>
@@ -566,6 +692,13 @@ location.reload();</pre>
 
       <article class="feature">
         <h3><span class="badge ai">AI</span> Safety-warning generator</h3>
+        <div class="proof">
+          <div class="label">Proof</div>
+          <a class="shot" href="/proof/p10-ai-safety.png" target="_blank">
+            <img src="/proof/p10-ai-safety.png" alt="Step editor with AI-generated safety warning">
+          </a>
+          <div class="caption">Step editor open on an RF-stimulus step; sparkles button populated <em>safety warning</em> with an RF-radiation cautionary sentence.</div>
+        </div>
         <div class="test">
           <div class="label">How to test</div>
           <ol>
@@ -579,6 +712,13 @@ location.reload();</pre>
 
       <article class="feature">
         <h3><span class="badge ai">AI</span> Step-ordering review</h3>
+        <div class="proof">
+          <div class="label">Proof</div>
+          <a class="shot" href="/proof/p10-ai-order-review.png" target="_blank">
+            <img src="/proof/p10-ai-order-review.png" alt="AI step-ordering review card with concerns list">
+          </a>
+          <div class="caption">AI tab → <em>Step-ordering review</em> card after Groq returned its analysis (concerns or "no concerns flagged" alert).</div>
+        </div>
         <div class="test">
           <div class="label">How to test</div>
           <ol>
@@ -591,6 +731,13 @@ location.reload();</pre>
 
       <article class="feature">
         <h3><span class="badge ai">AI</span> Revision-impact summary (ECR)</h3>
+        <div class="proof">
+          <div class="label">Proof</div>
+          <a class="shot" href="/proof/p10-diff-with-ai.png" target="_blank">
+            <img src="/proof/p10-diff-with-ai.png" alt="Diff page with AI-generated impact summary at top">
+          </a>
+          <div class="caption">Same diff page as above; <em>AI impact summary</em> card at top is Groq's ECR-ready paragraphs citing the specific limit change.</div>
+        </div>
         <div class="test">
           <div class="label">How to test</div>
           <ol>
@@ -618,6 +765,13 @@ location.reload();</pre>
 
       <article class="feature">
         <h3><span class="badge backend">IO</span> Touchstone v1/v2 read + write</h3>
+        <div class="proof">
+          <div class="label">Proof</div>
+          <a class="shot" href="/proof/p11-touchstone-io.png" target="_blank">
+            <img src="/proof/p11-touchstone-io.png" alt="S-parameter sweep list with uploaded files">
+          </a>
+          <div class="caption">Two .s2p files round-tripped through the v1/v2 parser → list shows ports, points, span (GHz), Z₀ correctly extracted from the option line.</div>
+        </div>
         <div class="test">
           <div class="label">How to test</div>
           <ol>
@@ -631,6 +785,17 @@ location.reload();</pre>
 
       <article class="feature">
         <h3><span class="badge ui">UI</span> Visualisation — 5 plot types</h3>
+        <div class="proof">
+          <div class="label">Proof</div>
+          <a class="shot" href="/proof/p11-viz-mag.png" target="_blank">
+            <img src="/proof/p11-viz-mag.png" alt="Magnitude (dB) plot of S21 + S11">
+          </a>
+          <div class="caption">Magnitude view (S21 amber band-pass, S11 blue match) + dropdown to swap to Phase / Group delay / Smith / Polar.</div>
+          <a class="shot" href="/proof/p11-viz-smith.png" target="_blank" style="margin-top:8px">
+            <img src="/proof/p11-viz-smith.png" alt="Smith chart of S11 across the band">
+          </a>
+          <div class="caption">Smith chart of the same sweep — custom Canvas with constant-r circles, constant-x arcs, ±0.2/0.5/1/2/5 normalised.</div>
+        </div>
         <div class="test">
           <div class="label">How to test</div>
           <ol>
@@ -644,6 +809,13 @@ location.reload();</pre>
 
       <article class="feature">
         <h3><span class="badge backend">Cal</span> OSLT fixture de-embedding</h3>
+        <div class="proof">
+          <div class="label">Proof</div>
+          <a class="shot" href="/proof/p11-deembed.png" target="_blank">
+            <img src="/proof/p11-deembed.png" alt="De-Embed tab — cal-set picker + apply button">
+          </a>
+          <div class="caption">De-Embed tab — pick a registered cal set, hit <strong>Apply calibration</strong>. A new sweep is created with <code>source=de_embedded</code> linked back to the raw one.</div>
+        </div>
         <div class="test">
           <div class="label">How to test</div>
           <ol>
@@ -662,6 +834,13 @@ location.reload();</pre>
 
       <article class="feature">
         <h3><span class="badge ui">UI</span> Golden-unit compare + overlay</h3>
+        <div class="proof">
+          <div class="label">Proof</div>
+          <a class="shot" href="/proof/p11-compare.png" target="_blank">
+            <img src="/proof/p11-compare.png" alt="Compare tab — overlay + per-frequency delta">
+          </a>
+          <div class="caption">Measured (UUT with suckout) vs golden K245 — top chart overlays S21 measured + golden + S11, bottom chart plots Δ|S| (dB) per frequency.</div>
+        </div>
         <div class="test">
           <div class="label">How to test</div>
           <ol>
@@ -680,6 +859,19 @@ location.reload();</pre>
 
       <article class="feature">
         <h3><span class="badge backend">VNA</span> VNA auto-archive</h3>
+        <div class="proof">
+          <div class="label">Proof</div>
+          <pre style="margin:0;padding:10px 12px;border-radius:8px;background:var(--code-bg);color:var(--code-ink);font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;line-height:1.55;overflow-x:auto">backend/services/sparam_capture.py
+
+async def archive_capture(*, test_run_id, uut_id, subsystem_id,
+                          touchstone_text=None, s_matrix=None,
+                          freq_hz=None, z0_ohm=50.0,
+                          filename=None, metadata=None) -> int | None:
+    # Accepts either a Touchstone string OR (s_matrix + freq_hz) numpy arrays
+    # Persists into sparam_sweeps with source='captured'
+    # Returns the new id; never raises (failures logged, not propagated)</pre>
+          <div class="caption">Backend helper the execution runner calls when a VNA driver step completes. Logged-not-raised so an archive failure can't break a live test run.</div>
+        </div>
         <div class="test">
           <div class="label">How to test</div>
           <ol>
@@ -693,6 +885,13 @@ location.reload();</pre>
 
       <article class="feature">
         <h3><span class="badge api">API</span> Export to .mat / .npz / .csv</h3>
+        <div class="proof">
+          <div class="label">Proof</div>
+          <a class="shot" href="/proof/p11-viz-mag.png" target="_blank">
+            <img src="/proof/p11-viz-mag.png" alt="Top-right export bar: .s2p / .csv / .mat / .npz">
+          </a>
+          <div class="caption">Top-right of the sweep detail page — four buttons stream the file in the chosen format. (Same screenshot as the visualisation proof, look at the header row.)</div>
+        </div>
         <div class="test">
           <div class="label">How to test</div>
           <ol>
@@ -707,6 +906,22 @@ location.reload();</pre>
 
       <article class="feature">
         <h3><span class="badge backend">IO</span> Touchstone validation (line-precise errors)</h3>
+        <div class="proof">
+          <div class="label">Proof</div>
+          <a class="dl" href="/proof/p11-validation.json" target="_blank" download>
+            ⬇ p11-validation.json
+          </a>
+          <pre style="margin-top:6px;padding:10px 12px;border-radius:8px;background:var(--code-bg);color:var(--code-ink);font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;overflow-x:auto">$ curl -X POST $URL/api/sparam/sweeps/upload \
+    -H "Authorization: Bearer $TOK" \
+    -F "file=@bad.s2p"
+
+HTTP/1.1 400
+{"detail":{
+  "message": "line 2: expected 9 columns for 2-port (MA format), got 3",
+  "line": 2, "column": null
+}}</pre>
+          <div class="caption">Live API response captured from the running backend (3-column s2p, must be 9). Click the JSON link for the full request/response capture.</div>
+        </div>
         <div class="test">
           <div class="label">How to test</div>
           <ol>
@@ -724,6 +939,13 @@ location.reload();</pre>
 
       <article class="feature">
         <h3><span class="badge ui">UI</span> Pass/fail mask + chart overlay</h3>
+        <div class="proof">
+          <div class="label">Proof</div>
+          <a class="shot" href="/proof/p11-mask.png" target="_blank">
+            <img src="/proof/p11-mask.png" alt="Mask evaluation — FAIL alert + chart with band overlay + result table">
+          </a>
+          <div class="caption">Mask evaluation against the suckout sweep: top alert says <strong>FAIL — 1 / 1 bands failed</strong>, the chart amber overlay shows the pass window, and the table reports the worst value + frequency.</div>
+        </div>
         <div class="test">
           <div class="label">How to test</div>
           <ol>
@@ -749,6 +971,13 @@ location.reload();</pre>
 
       <article class="feature">
         <h3><span class="badge ai">AI</span> Anomaly detection vs history</h3>
+        <div class="proof">
+          <div class="label">Proof</div>
+          <a class="shot" href="/proof/p11-ai-all.png" target="_blank">
+            <img src="/proof/p11-ai-all.png" alt="AI tab — anomaly card populated">
+          </a>
+          <div class="caption">Top-left card after clicking <strong>Detect</strong>: Groq returned severity-tagged anomalies (or "no anomalies flagged" if the sweep is clean).</div>
+        </div>
         <div class="test">
           <div class="label">How to test</div>
           <ol>
@@ -762,6 +991,13 @@ location.reload();</pre>
 
       <article class="feature">
         <h3><span class="badge ai">AI</span> Narrative vs golden</h3>
+        <div class="proof">
+          <div class="label">Proof</div>
+          <a class="shot" href="/proof/p11-ai-all.png" target="_blank">
+            <img src="/proof/p11-ai-all.png" alt="AI tab — narrative card populated">
+          </a>
+          <div class="caption">Top-right card on the AI tab: plain-English explanation of measured-vs-golden differences with frequency / dB callouts.</div>
+        </div>
         <div class="test">
           <div class="label">How to test</div>
           <ol>
@@ -774,6 +1010,13 @@ location.reload();</pre>
 
       <article class="feature">
         <h3><span class="badge ai">AI</span> Cal-set suggestion</h3>
+        <div class="proof">
+          <div class="label">Proof</div>
+          <a class="shot" href="/proof/p11-ai-all.png" target="_blank">
+            <img src="/proof/p11-ai-all.png" alt="AI tab — cal-set suggest card">
+          </a>
+          <div class="caption">Bottom-left card: Groq returned <code>best_match_id</code>, confidence level, and one-sentence reason based on span overlap and Z₀ match.</div>
+        </div>
         <div class="test">
           <div class="label">How to test</div>
           <ol>
@@ -786,6 +1029,13 @@ location.reload();</pre>
 
       <article class="feature">
         <h3><span class="badge ai">AI</span> Mask-failure explanation</h3>
+        <div class="proof">
+          <div class="label">Proof</div>
+          <a class="shot" href="/proof/p11-ai-all.png" target="_blank">
+            <img src="/proof/p11-ai-all.png" alt="AI tab — mask failure explanation card">
+          </a>
+          <div class="caption">Bottom-right card: one-paragraph natural-language explanation of which band failed and by how many dB, paired with a plausible root cause.</div>
+        </div>
         <div class="test">
           <div class="label">How to test</div>
           <ol>

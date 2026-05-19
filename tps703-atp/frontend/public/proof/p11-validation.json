@@ -1,0 +1,12 @@
+{
+  "_demo": "POST /api/sparam/sweeps/upload with a malformed s2p (3 columns, needs 9)",
+  "request_file": "# HZ S MA R 50\n2.8e9 0.1 0\n",
+  "response_status": 400,
+  "response_body": {
+    "detail": {
+      "message": "line 2: expected 9 columns for 2-port (MA format), got 3",
+      "line": 2,
+      "column": null
+    }
+  }
+}
