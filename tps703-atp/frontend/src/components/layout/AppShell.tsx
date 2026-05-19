@@ -20,6 +20,7 @@ import {
   LogOut,
   FileText,
   Waves,
+  BookOpen,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import logoImg from '@/assets/logo.png'
@@ -280,6 +281,34 @@ export default function AppShell({ children, auth, onLogout }: AppShellProps) {
           <main className="flex-1 overflow-auto bg-background">
             <div className="p-6">{children}</div>
           </main>
+
+          {/* Floating "Test Guide" button — fixed top-right of viewport,
+              opens the Phase 10 + 11 feature test guide in a new tab.
+              Visible on every authenticated page; hover tooltip explains it. */}
+          <Tooltip>
+            <TooltipTrigger
+              render={(triggerProps) => (
+                <a
+                  {...triggerProps}
+                  href="/features.html"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="fixed top-3 right-4 z-50 inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-xs font-medium bg-card text-foreground border border-border shadow-sm hover:border-blue-600 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                >
+                  <BookOpen className="h-3.5 w-3.5" />
+                  Test Guide
+                </a>
+              )}
+            />
+            <TooltipContent side="bottom" sideOffset={8} className="max-w-xs text-xs">
+              <div className="font-medium mb-1">Feature test guide</div>
+              <div className="opacity-80">
+                Opens a checklist of every Phase 10 + Phase 11 feature
+                with step-by-step instructions to verify each one works.
+                Useful for QA reviews and demos.
+              </div>
+            </TooltipContent>
+          </Tooltip>
         </div>
       </TooltipProvider>
     </AuthContext>

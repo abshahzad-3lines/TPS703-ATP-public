@@ -1,0 +1,899 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>TPS-703 ATP — Phase 10 + 11 Feature Test Guide</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  :root {
+    --bg: #0b1220;
+    --panel: #ffffff;
+    --ink: #0f172a;
+    --muted: #64748b;
+    --line: #e2e8f0;
+    --accent: #2563eb;
+    --accent-soft: #eff6ff;
+    --p10: #2563eb;
+    --p11: #0ea5e9;
+    --ai: #7c3aed;
+    --infra: #d97706;
+    --good: #059669;
+    --warn: #b91c1c;
+    --code-bg: #0f172a;
+    --code-ink: #e2e8f0;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 90px; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    color: var(--ink);
+    background: linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
+    line-height: 1.55;
+  }
+  header.hero {
+    background: linear-gradient(135deg, #0b1220 0%, #1e293b 100%);
+    color: #f1f5f9;
+    padding: 56px 28px 36px;
+    border-bottom: 4px solid var(--accent);
+  }
+  header.hero .wrap { max-width: 1100px; margin: 0 auto; }
+  header.hero h1 {
+    font-size: 36px; line-height: 1.15; margin: 0 0 8px;
+    letter-spacing: -0.02em;
+  }
+  header.hero p.lede {
+    margin: 0; color: #94a3b8; font-size: 16px; max-width: 680px;
+  }
+  .hero-meta {
+    margin-top: 24px;
+    display: flex; gap: 16px; flex-wrap: wrap;
+  }
+  .hero-meta .card {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+    padding: 12px 16px;
+    min-width: 220px;
+  }
+  .hero-meta .card .label {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
+    color: #94a3b8;
+  }
+  .hero-meta .card .value {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 14px; color: #f8fafc; margin-top: 2px;
+  }
+  .hero-meta .card a { color: #93c5fd; text-decoration: none; }
+  .hero-meta .card a:hover { text-decoration: underline; }
+
+  section.intro {
+    max-width: 1100px;
+    margin: 36px auto -12px;
+    padding: 0 28px;
+  }
+  section.intro h2 {
+    font-size: 20px; margin: 0 0 12px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  section.intro h2::before {
+    content: "";
+    display: inline-block;
+    width: 4px; height: 20px; border-radius: 2px;
+    background: var(--accent);
+  }
+  section.intro .intro-grid {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 18px;
+    align-items: start;
+  }
+  section.intro .panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 18px 22px;
+    box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+  }
+  section.intro .panel h3 {
+    margin: 0 0 8px;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+  }
+  section.intro .panel p { margin: 0 0 10px; font-size: 14px; }
+  section.intro .panel p:last-child { margin-bottom: 0; }
+  section.intro .panel ol, section.intro .panel ul {
+    margin: 0; padding-left: 20px; font-size: 14px;
+  }
+  section.intro .panel li { margin-bottom: 4px; }
+  section.intro .legend {
+    display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;
+  }
+  section.intro .legend .chip {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 3px 9px; border-radius: 999px;
+    border: 1px solid currentColor;
+  }
+  section.intro .legend .chip.ai { color: var(--ai); background: #f5f3ff; }
+  section.intro .legend .chip.ui { color: var(--p10); background: var(--accent-soft); }
+  section.intro .legend .chip.api { color: var(--good); background: #ecfdf5; }
+  section.intro .legend .chip.backend { color: var(--muted); background: #f1f5f9; border-color: var(--line); }
+  section.intro pre {
+    margin: 8px 0 0;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: var(--code-bg);
+    color: var(--code-ink);
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 11px;
+    line-height: 1.55;
+    overflow-x: auto;
+  }
+  section.intro code {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 12px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: #f1f5f9;
+    color: var(--ink);
+    border: 1px solid var(--line);
+  }
+  @media (max-width: 880px) {
+    section.intro .intro-grid { grid-template-columns: 1fr; }
+  }
+
+  nav.toc {
+    position: sticky; top: 0; z-index: 10;
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: saturate(180%) blur(10px);
+    border-bottom: 1px solid var(--line);
+  }
+  nav.toc .wrap {
+    max-width: 1100px; margin: 0 auto; padding: 12px 28px;
+    display: flex; gap: 6px; flex-wrap: wrap;
+  }
+  nav.toc a {
+    font-size: 13px; color: var(--ink); text-decoration: none;
+    padding: 6px 12px; border-radius: 999px;
+    border: 1px solid var(--line); background: #fff;
+  }
+  nav.toc a:hover { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+
+  main { max-width: 1100px; margin: 0 auto; padding: 36px 28px 96px; }
+
+  section.phase { margin-top: 48px; }
+  section.phase:first-of-type { margin-top: 0; }
+  section.phase > h2 {
+    font-size: 24px; margin: 0 0 4px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  section.phase > h2 .dot {
+    width: 12px; height: 12px; border-radius: 50%;
+  }
+  section.phase[data-color="p10"] > h2 .dot { background: var(--p10); }
+  section.phase[data-color="p11"] > h2 .dot { background: var(--p11); }
+  section.phase[data-color="infra"] > h2 .dot { background: var(--infra); }
+  section.phase > p.sub { margin: 0 0 24px; color: var(--muted); font-size: 14px; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: 16px;
+  }
+
+  article.feature {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 18px 20px;
+    box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  article.feature h3 {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.35;
+    color: var(--ink);
+    display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
+  }
+  article.feature h3 .id {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  article.feature .badge {
+    display: inline-block;
+    font-size: 10px; font-weight: 600; letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 2px 8px; border-radius: 999px;
+    border: 1px solid currentColor;
+  }
+  article.feature .badge.ai { color: var(--ai); background: #f5f3ff; }
+  article.feature .badge.ui { color: var(--p10); background: var(--accent-soft); }
+  article.feature .badge.api { color: var(--good); background: #ecfdf5; }
+  article.feature .badge.backend { color: var(--muted); background: #f1f5f9; border-color: var(--line); }
+
+  article.feature .test {
+    border-top: 1px dashed var(--line);
+    padding-top: 10px;
+    font-size: 13px;
+  }
+  article.feature .test .label {
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    color: var(--muted); letter-spacing: 0.06em; margin-bottom: 6px;
+  }
+  article.feature .test ol {
+    margin: 0; padding-left: 18px;
+  }
+  article.feature .test li { margin-bottom: 4px; }
+  article.feature .test li:last-child { margin-bottom: 0; }
+  article.feature code {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 12px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: #f1f5f9;
+    color: var(--ink);
+    border: 1px solid var(--line);
+  }
+  article.feature pre {
+    margin: 8px 0 0;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: var(--code-bg);
+    color: var(--code-ink);
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 11px;
+    line-height: 1.5;
+    overflow-x: auto;
+  }
+
+  details.tip {
+    margin-top: 28px;
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 13px;
+  }
+  details.tip summary {
+    cursor: pointer; font-weight: 600; color: #92400e;
+  }
+  details.tip code { background: #fef3c7; border-color: #fde68a; }
+
+  footer {
+    max-width: 1100px; margin: 64px auto 32px;
+    padding: 0 28px;
+    color: var(--muted); font-size: 12px; text-align: center;
+  }
+
+  @media (max-width: 640px) {
+    header.hero { padding: 36px 20px 24px; }
+    header.hero h1 { font-size: 26px; }
+    main { padding: 24px 20px 60px; }
+    .grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <h1>TPS-703 ATP — Phase 10 + 11 Test Guide</h1>
+    <p class="lede">
+      One page per delivered feature, with the exact steps to verify each one
+      against the running deployment. Use the table of contents to jump.
+    </p>
+    <div class="hero-meta">
+      <div class="card">
+        <div class="label">Production URL</div>
+        <div class="value"><a href="https://tps703-atp-cu9j.onrender.com" target="_blank">tps703-atp-cu9j.onrender.com</a></div>
+      </div>
+      <div class="card">
+        <div class="label">Login</div>
+        <div class="value">admin · admin123</div>
+      </div>
+      <div class="card">
+        <div class="label">Repo</div>
+        <div class="value"><a href="https://github.com/KK-SP/TPS703-ATP" target="_blank">KK-SP/TPS703-ATP</a></div>
+      </div>
+      <div class="card">
+        <div class="label">Branch</div>
+        <div class="value">main</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section class="intro" id="intro">
+  <h2>About this guide</h2>
+  <div class="intro-grid">
+    <div class="panel">
+      <h3>What this is</h3>
+      <p>
+        A single-page test catalog for every feature delivered in Phase 10 (ATP
+        authoring) and Phase 11 (S-parameter workflows) of the
+        <strong>TPS-703 ATP Automation System</strong> — the web app that runs
+        Acceptance Test Procedures for Northrop Grumman's S-band radar
+        transmitter subsystems (CAGE Code 97942).
+      </p>
+      <p>
+        Use it as a checklist when reviewing a deployment: each card pairs a
+        feature with the exact steps to verify it works end-to-end. The
+        feature list mirrors the original Phase 10 / Phase 11 work items, so
+        you can tick each one off without cross-referencing tickets or code.
+      </p>
+    </div>
+
+    <div class="panel">
+      <h3>What the app does (one paragraph)</h3>
+      <p>
+        Replaces paper-based ATP workflows with a digital system that
+        enforces test sequencing, captures live instrument measurements,
+        validates them against specification limits, and produces
+        tamper-evident certificates. Phase 10 added a versioned ATP authoring
+        layer with peer review and AI-assisted drafting; Phase 11 added
+        S-parameter (.sNp) import, visualisation, fixture de-embedding,
+        golden-unit compare, and AI sweep analysis.
+      </p>
+    </div>
+
+    <div class="panel">
+      <h3>How to use this guide</h3>
+      <ol>
+        <li>
+          Open the production URL above and log in with
+          <code>admin</code> / <code>admin123</code>.
+          (If it takes ~30 s on first hit, that's the Render free-tier
+          waking up — see the cold-start tip at the bottom.)
+        </li>
+        <li>
+          Pick a feature card from any section. Follow the
+          <strong>How to test</strong> steps top-to-bottom.
+        </li>
+        <li>
+          UI features list exact click paths (sidebar entries, tab names,
+          button labels). API features include curl snippets you can paste
+          straight into a terminal.
+        </li>
+        <li>
+          AI features call Groq (<code>llama-3.3-70b-versatile</code>). They
+          may take 1–4 s per call. If you see <code>503</code> the
+          <code>GROQ_API_KEY</code> isn't set; if you see <code>429</code>
+          the per-user rate limit (20/min, 200/day) kicked in.
+        </li>
+      </ol>
+    </div>
+
+    <div class="panel">
+      <h3>Reading the cards</h3>
+      <p>
+        Each card has a coloured badge indicating where the feature lives:
+      </p>
+      <div class="legend">
+        <span class="chip ui">UI</span>
+        <span class="chip api">API</span>
+        <span class="chip ai">AI</span>
+        <span class="chip backend">backend</span>
+      </div>
+      <p style="margin-top:10px">
+        Feature sections are colour-tagged: <span style="color:var(--p10)"><strong>Phase 10</strong></span>
+        in blue, <span style="color:var(--p11)"><strong>Phase 11</strong></span> in cyan,
+        <span style="color:var(--infra)"><strong>Infrastructure</strong></span> in amber.
+      </p>
+    </div>
+
+    <div class="panel" style="grid-column: 1 / -1;">
+      <h3>Need an API token for the curl examples?</h3>
+      <p>Run this in your terminal once — it stores the bearer token in <code>$TOK</code> for the rest of your shell session:</p>
+      <pre>URL=https://tps703-atp-cu9j.onrender.com
+TOK=$(curl -s -X POST $URL/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"admin123"}' \
+  | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
+echo "Token captured, length $(echo -n $TOK | wc -c | tr -d ' ')"</pre>
+      <p style="margin-top:10px">
+        Every <code>curl</code> in this guide assumes <code>$URL</code> and <code>$TOK</code> are
+        already set. The token is valid for 15 minutes — re-run if you get a 401.
+      </p>
+    </div>
+  </div>
+</section>
+
+<nav class="toc">
+  <div class="wrap">
+    <a href="#intro">Intro</a>
+    <a href="#phase-10">Phase 10 — ATP Authoring</a>
+    <a href="#phase-10-ai">Phase 10 AI</a>
+    <a href="#phase-11">Phase 11 — S-Parameters</a>
+    <a href="#phase-11-ai">Phase 11 AI</a>
+    <a href="#infrastructure">Infrastructure</a>
+    <a href="#warmup">Cold-start tip</a>
+  </div>
+</nav>
+
+<main>
+
+  <!-- ============================================================
+       PHASE 10 — ATP Authoring
+       ============================================================ -->
+  <section class="phase" id="phase-10" data-color="p10">
+    <h2><span class="dot"></span>Phase 10 — ATP Authoring</h2>
+    <p class="sub">
+      State-machine-governed authoring of Acceptance Test Procedures.
+      Sidebar: <strong>ATP Author</strong> (engineer+).
+    </p>
+
+    <div class="grid">
+
+      <article class="feature">
+        <h3><span class="badge ui">UI</span> Authoring UI <span class="id">/atp-author</span></h3>
+        <div class="test">
+          <div class="label">How to test</div>
+          <ol>
+            <li>Sidebar → <strong>ATP Author</strong>.</li>
+            <li>Click <strong>+ New draft</strong>, pick a subsystem, fill code + name, submit.</li>
+            <li>On the detail page, click <strong>Add step</strong> in the Steps tab — fill name, type, limits.</li>
+            <li>Five tabs should show: Steps · Metadata · Simulation · History · AI.</li>
+          </ol>
+        </div>
+      </article>
+
+      <article class="feature">
+        <h3><span class="badge backend">SM</span> State machine</h3>
+        <div class="test">
+          <div class="label">How to test</div>
+          <ol>
+            <li>Open a draft ATP. Top-right shows <strong>Submit for review</strong>.</li>
+            <li>Click it → state badge flips <code>draft → in_review</code>.</li>
+            <li>As the author you'll see <strong>Withdraw</strong> (Approve/Reject hidden).</li>
+            <li>History tab shows every transition with timestamp + user.</li>
+          </ol>
+        </div>
+      </article>
+
+      <article class="feature">
+        <h3><span class="badge backend">Auth</span> Peer review (two-user gate)</h3>
+        <div class="test">
+          <div class="label">How to test</div>
+          <ol>
+            <li>Submit a draft as <code>admin</code> → state becomes <code>in_review</code>.</li>
+            <li>Open the browser console:
+              <pre>await fetch('/api/auth/login', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:'peer',password:'pw1234'})}).then(r=>r.json()).then(j=>localStorage.setItem('token',j.access_token));
+location.reload();</pre>
+              (If <code>peer</code> doesn't exist yet, ask an engineer to create one.)</li>
+            <li>Now action bar shows <strong>Approve</strong> / <strong>Reject</strong>.</li>
+            <li>As <code>admin</code> again, try to Approve — it should return <strong>403 — Author cannot approve their own ATP</strong>.</li>
+          </ol>
+        </div>
+      </article>
+
+      <article class="feature">
+        <h3><span class="badge backend">Validator</span> Step-schema validation</h3>
+        <div class="test">
+          <div class="label">How to test</div>
+          <ol>
+            <li>In a draft, add an <code>output_power</code> step with no limits and no frequency.</li>
+            <li>Top of page shows a red banner listing each issue (missing <code>limit</code>, missing <code>frequency_mhz</code>, missing equipment for role <code>power_meter</code>, …).</li>
+            <li>Try Publish — blocked until issues clear.</li>
+          </ol>
+        </div>
+      </article>
+
+      <article class="feature">
+        <h3><span class="badge backend">Sim</span> Golden-unit simulation</h3>
+        <div class="test">
+          <div class="label">How to test</div>
+          <ol>
+            <li>Open any published or draft ATP. Switch to the <strong>Simulation</strong> tab.</li>
+            <li>Click <strong>Run simulation</strong>.</li>
+            <li>Shows pass / fail / skipped counts + a per-step measured-vs-limits table; history table appends a row each run.</li>
+          </ol>
+        </div>
+      </article>
+
+      <article class="feature">
+        <h3><span class="badge ui">UI</span> DOCX / PDF import</h3>
+        <div class="test">
+          <div class="label">How to test</div>
+          <ol>
+            <li>Sidebar → ATP Author → <strong>Import .docx / .pdf</strong>.</li>
+            <li>Upload a Word/PDF doc that contains lines like <code>Step 1. …</code>, <code>Step 2. …</code>.</li>
+            <li>Dialog shows extracted text preview + heuristic step split.</li>
+            <li>Pick subsystem, confirm code/name, choose <strong>heuristic split</strong> or <strong>AI extract</strong>, click Create.</li>
+          </ol>
+        </div>
+      </article>
+
+      <article class="feature">
+        <h3><span class="badge ui">UI</span> Revision diff</h3>
+        <div class="test">
+          <div class="label">How to test</div>
+          <ol>
+            <li>From a published ATP, click <strong>Clone</strong> (copy icon) in the list view.</li>
+            <li>Edit one step in the new revision.</li>
+            <li>From the new revision's detail page, click <strong>Diff vs parent</strong>.</li>
+            <li>Page at <code>/atp-author/diff/&lt;base&gt;/&lt;target&gt;</code> shows metadata changes + added/removed/modified step tables.</li>
+          </ol>
+        </div>
+      </article>
+
+      <article class="feature">
+        <h3><span class="badge api">API</span> Export / import signed bundle</h3>
+        <div class="test">
+          <div class="label">How to test</div>
+          <ol>
+            <li>Detail page → top-right <strong>Export bundle</strong> → downloads <code>atp-&lt;code&gt;-rev&lt;X&gt;.json</code>.</li>
+            <li>Open the file — bottom has <code>signature.hmac</code>.</li>
+            <li>Re-import via API:
+              <pre>curl -X POST $URL/api/atp/import \
+  -H "Authorization: Bearer $TOK" \
+  -H "Content-Type: application/json" \
+  --data @atp-MYCODE-revA.json</pre>
+            </li>
+            <li>Edit the bundle (remove a step) and re-POST — server returns <strong>400 signature mismatch</strong>.</li>
+          </ol>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+  <!-- ============================================================
+       PHASE 10 AI helpers
+       ============================================================ -->
+  <section class="phase" id="phase-10-ai" data-color="p10">
+    <h2><span class="dot"></span>Phase 10 — AI assists (Groq)</h2>
+    <p class="sub">All four are rate-limited (20/min, 200/day per user). Without a <code>GROQ_API_KEY</code> they return 503 with a clear message.</p>
+
+    <div class="grid">
+
+      <article class="feature">
+        <h3><span class="badge ai">AI</span> Extract steps from document</h3>
+        <div class="test">
+          <div class="label">How to test</div>
+          <ol>
+            <li>ATP Author → Import .docx / .pdf, upload a procedure doc.</li>
+            <li>In the dialog, pick the <strong>AI-extract via Groq</strong> radio option.</li>
+            <li>Click Create — Groq returns structured steps with <code>step_type</code>, frequency, power, limits, units filled in.</li>
+            <li>The resulting draft's <strong>Source</strong> badge says <code>AI-extracted</code>.</li>
+          </ol>
+        </div>
+      </article>
+
+      <article class="feature">
+        <h3><span class="badge ai">AI</span> Safety-warning generator</h3>
+        <div class="test">
+          <div class="label">How to test</div>
+          <ol>
+            <li>On a draft ATP, open the Steps tab and click <strong>Edit</strong> on any step.</li>
+            <li>In the editor dialog, click the <strong>✨ sparkles</strong> button next to the <em>Safety warning</em> field.</li>
+            <li>Groq drafts a 1-2 sentence warning based on step parameters (RF power, voltage, lifting, ESD, etc).</li>
+            <li>Edit if needed, click <strong>Save</strong>.</li>
+          </ol>
+        </div>
+      </article>
+
+      <article class="feature">
+        <h3><span class="badge ai">AI</span> Step-ordering review</h3>
+        <div class="test">
+          <div class="label">How to test</div>
+          <ol>
+            <li>On any ATP, switch to the <strong>AI</strong> tab.</li>
+            <li>Click <strong>Review</strong> in the <em>AI step-ordering review</em> card.</li>
+            <li>Groq returns concerns categorised as <code>missing_warmup</code>, <code>missing_settling</code>, <code>dependency_violation</code>, <code>duplicate</code>, <code>safety_gap</code>, <code>limit_mismatch</code>, <code>redundant_stimulus</code>.</li>
+          </ol>
+        </div>
+      </article>
+
+      <article class="feature">
+        <h3><span class="badge ai">AI</span> Revision-impact summary (ECR)</h3>
+        <div class="test">
+          <div class="label">How to test</div>
+          <ol>
+            <li>Go to a revision-diff page (see <em>Revision diff</em> above).</li>
+            <li>Top card: <strong>AI impact summary</strong> → click <strong>Generate summary</strong>.</li>
+            <li>Groq returns 2-4 ECR-ready paragraphs explaining what changed and why it matters, citing specific frequencies / limits.</li>
+          </ol>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+  <!-- ============================================================
+       PHASE 11 — S-parameter workflows
+       ============================================================ -->
+  <section class="phase" id="phase-11" data-color="p11">
+    <h2><span class="dot"></span>Phase 11 — S-Parameter Workflows</h2>
+    <p class="sub">
+      Touchstone I/O, visualisation, de-embedding, golden-unit compare, masks.
+      Sidebar: <strong>S-Parameters</strong> (technician+).
+    </p>
+
+    <div class="grid">
+
+      <article class="feature">
+        <h3><span class="badge backend">IO</span> Touchstone v1/v2 read + write</h3>
+        <div class="test">
+          <div class="label">How to test</div>
+          <ol>
+            <li>Sidebar → <strong>S-Parameters</strong> → <strong>Upload .sNp</strong>.</li>
+            <li>Pick any <code>.s1p</code>/<code>.s2p</code>/<code>.s3p</code>/<code>.s4p</code> file.</li>
+            <li>New row appears in the list with port count, sample count, frequency span, Z₀.</li>
+            <li>Click the small download arrow → server returns a normalised Touchstone v2 string.</li>
+          </ol>
+        </div>
+      </article>
+
+      <article class="feature">
+        <h3><span class="badge ui">UI</span> Visualisation — 5 plot types</h3>
+        <div class="test">
+          <div class="label">How to test</div>
+          <ol>
+            <li>Open any uploaded sweep → <strong>Plots</strong> tab (default).</li>
+            <li>Use the chart-type dropdown to switch between <strong>Magnitude (dB)</strong>, <strong>Phase (°)</strong>, <strong>Group delay (s)</strong>, <strong>Smith chart</strong>, <strong>Polar</strong>.</li>
+            <li>Toggle the S11 / S12 / S21 / S22 chips to add/remove traces.</li>
+            <li>Smith + polar are custom Canvas; line plots use Recharts.</li>
+          </ol>
+        </div>
+      </article>
+
+      <article class="feature">
+        <h3><span class="badge backend">Cal</span> OSLT fixture de-embedding</h3>
+        <div class="test">
+          <div class="label">How to test</div>
+          <ol>
+            <li>Upload four cal sweeps (open, short, load, thru) <em>and</em> your raw DUT sweep.</li>
+            <li>Create a cal set via API:
+              <pre>curl -X POST $URL/api/sparam/cal-sets \
+  -H "Authorization: Bearer $TOK" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"CalA","cal_type":"OSLT","open_sweep_id":2,"short_sweep_id":3,"load_sweep_id":4,"thru_sweep_id":5}'</pre>
+            </li>
+            <li>Open the raw DUT sweep → <strong>De-Embed</strong> tab → pick <em>CalA</em> → <strong>Apply calibration</strong>.</li>
+            <li>New de-embedded sweep is created and linked back; source badge says <code>de embedded</code>.</li>
+          </ol>
+        </div>
+      </article>
+
+      <article class="feature">
+        <h3><span class="badge ui">UI</span> Golden-unit compare + overlay</h3>
+        <div class="test">
+          <div class="label">How to test</div>
+          <ol>
+            <li>Upload your reference sweep. Register it via API:
+              <pre>curl -X POST $URL/api/sparam/golden-refs \
+  -H "Authorization: Bearer $TOK" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"K245 golden","subsystem_id":1,"sweep_id":1,"uut_family":"K245"}'</pre>
+            </li>
+            <li>Upload a second (measured) sweep. Open it → <strong>Compare</strong> tab.</li>
+            <li>Pick the golden ref from the dropdown → <strong>Compare</strong>.</li>
+            <li>Top chart overlays measured + golden; bottom chart plots Δ|S| (dB) per frequency.</li>
+          </ol>
+        </div>
+      </article>
+
+      <article class="feature">
+        <h3><span class="badge backend">VNA</span> VNA auto-archive</h3>
+        <div class="test">
+          <div class="label">How to test</div>
+          <ol>
+            <li>(Lab-only) Run a test step that exercises a network-analyzer step type.</li>
+            <li>The execution runner calls <code>sparam_capture.archive_capture()</code> with the captured matrix.</li>
+            <li>Open <strong>S-Parameters</strong>; new row with <strong>source = captured</strong> and <code>test_run_id</code> populated.</li>
+            <li>To unit-test without hardware: <code>POST</code> a sweep with an explicit <code>test_run_id</code> param to the upload endpoint — auto-archived sweeps look identical to that.</li>
+          </ol>
+        </div>
+      </article>
+
+      <article class="feature">
+        <h3><span class="badge api">API</span> Export to .mat / .npz / .csv</h3>
+        <div class="test">
+          <div class="label">How to test</div>
+          <ol>
+            <li>Open any sweep → top-right buttons: <strong>.s2p</strong> · <strong>.csv</strong> · <strong>.mat</strong> · <strong>.npz</strong>.</li>
+            <li>Each downloads instantly.</li>
+            <li><code>.csv</code> opens in Excel/Numbers (one row per frequency, real/imag columns).</li>
+            <li><code>.mat</code> opens in MATLAB: <code>load('sweep.mat'); plot(f, 20*log10(abs(squeeze(s(:,2,1)))))</code></li>
+            <li><code>.npz</code> opens in Python: <code>d = np.load('sweep.npz'); plt.plot(d['f'], 20*np.log10(np.abs(d['s'][:,1,0])))</code></li>
+          </ol>
+        </div>
+      </article>
+
+      <article class="feature">
+        <h3><span class="badge backend">IO</span> Touchstone validation (line-precise errors)</h3>
+        <div class="test">
+          <div class="label">How to test</div>
+          <ol>
+            <li>Create a deliberately-broken file (e.g. wrong column count):
+              <pre># HZ S MA R 50
+2.8e9 0.1 0
+2.9e9 0.1 0</pre>
+              (only 3 numeric columns for a 2-port file → should be 9)</li>
+            <li>Upload it through the UI.</li>
+            <li>A red alert appears: <strong>line 2: expected 9 columns for 2-port (MA format), got 3</strong>.</li>
+            <li>Other test cases: non-numeric token (<code>line X, col Y</code>), non-monotonic frequency, missing <code>#</code> option line.</li>
+          </ol>
+        </div>
+      </article>
+
+      <article class="feature">
+        <h3><span class="badge ui">UI</span> Pass/fail mask + chart overlay</h3>
+        <div class="test">
+          <div class="label">How to test</div>
+          <ol>
+            <li>Open a sweep → <strong>Mask</strong> tab → <strong>+ New mask</strong>.</li>
+            <li>Fill <em>f_start = 2.85</em>, <em>f_stop = 3.05</em>, <em>param = s21</em>, <em>quantity = mag_db</em>, <em>min = -3</em>, <em>max = 1</em>, name it, Create.</li>
+            <li>Pick the mask from the dropdown → <strong>Evaluate</strong>.</li>
+            <li>Alert shows PASS / FAIL; chart overlays the pass window as an amber band; table lists each band's worst value + frequency.</li>
+          </ol>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+  <!-- ============================================================
+       PHASE 11 AI helpers
+       ============================================================ -->
+  <section class="phase" id="phase-11-ai" data-color="p11">
+    <h2><span class="dot"></span>Phase 11 — AI assists (Groq)</h2>
+    <p class="sub">Four cards in the sweep's <strong>AI</strong> tab. Same 20/min, 200/day per-user rate limit as Phase 10 AI.</p>
+
+    <div class="grid">
+
+      <article class="feature">
+        <h3><span class="badge ai">AI</span> Anomaly detection vs history</h3>
+        <div class="test">
+          <div class="label">How to test</div>
+          <ol>
+            <li>Upload at least 3–5 sweeps for the same subsystem (so history exists).</li>
+            <li>Upload one obviously-broken sweep (e.g. ~6 dB suckout at 2.95 GHz).</li>
+            <li>Open the broken sweep → <strong>AI</strong> tab → <strong>Detect</strong> in the anomaly card.</li>
+            <li>Returns severity-tagged entries: <code>resonance</code>, <code>suckout</code>, <code>ripple</code>, <code>slope_deviation</code>, <code>phase_glitch</code>, <code>in-band-loss</code>, <code>match_degrade</code>.</li>
+          </ol>
+        </div>
+      </article>
+
+      <article class="feature">
+        <h3><span class="badge ai">AI</span> Narrative vs golden</h3>
+        <div class="test">
+          <div class="label">How to test</div>
+          <ol>
+            <li>Register a golden ref (see Compare feature).</li>
+            <li>On a different sweep, AI tab → <em>Narrative vs golden</em> card → pick the golden → <strong>Generate</strong>.</li>
+            <li>Groq returns 2-3 paragraphs explaining the diff in plain English with frequency / dB citations.</li>
+          </ol>
+        </div>
+      </article>
+
+      <article class="feature">
+        <h3><span class="badge ai">AI</span> Cal-set suggestion</h3>
+        <div class="test">
+          <div class="label">How to test</div>
+          <ol>
+            <li>Register a few cal sets (different frequency spans).</li>
+            <li>Upload a raw sweep. AI tab → <em>Cal-set suggestion</em> card → <strong>Suggest</strong>.</li>
+            <li>Returns <code>best_match_id</code>, confidence, and a one-sentence reason — typically based on frequency-span overlap and Z₀ match.</li>
+          </ol>
+        </div>
+      </article>
+
+      <article class="feature">
+        <h3><span class="badge ai">AI</span> Mask-failure explanation</h3>
+        <div class="test">
+          <div class="label">How to test</div>
+          <ol>
+            <li>Build a mask that the current sweep will fail.</li>
+            <li>AI tab → <em>Mask-failure explanation</em> → pick the mask → <strong>Explain</strong>.</li>
+            <li>Groq returns one paragraph naming the band, the actual-vs-limit magnitude, and a plausible lab-engineer root cause.</li>
+          </ol>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+  <!-- ============================================================
+       Infrastructure — work delivered in this session beyond features
+       ============================================================ -->
+  <section class="phase" id="infrastructure" data-color="infra">
+    <h2><span class="dot"></span>Infrastructure changes (this session)</h2>
+    <p class="sub">Non-feature work that's still worth knowing about.</p>
+
+    <div class="grid">
+
+      <article class="feature">
+        <h3><span class="badge backend">Limit</span> Per-user AI rate limiter</h3>
+        <div class="test">
+          <div class="label">How to test</div>
+          <ol>
+            <li>Open the browser console while logged in.</li>
+            <li>Fire 22 AI calls in parallel:
+              <pre>const tok = localStorage.getItem('token');
+const calls = Array.from({length: 22}, (_, i) =>
+  fetch('/api/atp/ai/extract-from-document', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json', Authorization: `Bearer ${tok}`},
+    body: JSON.stringify({text:'Step 1. test', subsystem_id:1, code:`B-${i}`, name:`B${i}`}),
+  }).then(r => r.status));
+console.log(await Promise.all(calls));</pre>
+            </li>
+            <li>You'll see ~20 successes + 2 × <code>429</code> from the local limiter. Some of the successes may further return <code>502</code> from Groq's own per-second cap.</li>
+            <li>Limits are <strong>20 / minute</strong> and <strong>200 / day</strong> per user (see <code>services/rate_limit.py</code>).</li>
+          </ol>
+        </div>
+      </article>
+
+      <article class="feature">
+        <h3><span class="badge backend">Auto</span> Env auto-load from <code>~/Desktop/.env.local</code></h3>
+        <div class="test">
+          <div class="label">How to test</div>
+          <ol>
+            <li>Backend <code>config.py</code> loads (in order, first-found-wins):
+              <code>backend/.env</code> → <code>repo/.env</code> → <code>~/Desktop/.env.local</code>.</li>
+            <li>Run the backend with no shell env exported — AI endpoints still work because <code>GROQ_API_KEY</code> auto-loads from the global file.</li>
+            <li>Remove the key from all three locations, restart — AI endpoints return <code>503</code> with a clear message; the rest of the app still works.</li>
+          </ol>
+        </div>
+      </article>
+
+      <article class="feature">
+        <h3><span class="badge backend">Deploy</span> Render hosting (single Docker)</h3>
+        <div class="test">
+          <div class="label">How to test</div>
+          <ol>
+            <li>Visit <a href="https://tps703-atp-cu9j.onrender.com" target="_blank">tps703-atp-cu9j.onrender.com</a>.</li>
+            <li>Same image serves both <code>/api/*</code> + the SPA — no separate frontend host.</li>
+            <li>Auto-deploys on every push to <code>main</code> of the public mirror.</li>
+            <li>Free tier sleeps after 15 min idle (see cold-start tip below).</li>
+            <li>Logs: <code>render logs -r srv-d85bbsv7f7vs73aj9f80 --limit 50</code></li>
+          </ol>
+        </div>
+      </article>
+
+      <article class="feature">
+        <h3><span class="badge backend">Schema</span> Removed v1→v2 backfill</h3>
+        <div class="test">
+          <div class="label">How to test</div>
+          <ol>
+            <li>Fresh deploy: <strong>ATP Author</strong> page shows <em>0 of 0 revisions</em>.</li>
+            <li>v1 <code>test_procedures</code> are still seeded (4 subsystems, 23 procedures) and drive <em>Test Execution</em> as before.</li>
+            <li>The v2 <code>atp_*</code> tables exist but start empty — engineers populate them via <strong>+ New draft</strong> or document import.</li>
+          </ol>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+  <details class="tip" id="warmup">
+    <summary>If the first request is slow or fails — cold-start tip</summary>
+    <p>
+      Render's free tier suspends the container after 15 minutes of inactivity.
+      The first request after that wakes it up in ~30 s. If a login fails with
+      a network error, refresh once more — it'll come back. To eliminate the
+      sleep, upgrade the Render service to the $7/mo Starter plan.
+    </p>
+    <p>
+      Hard cap protection: the service is locked to the free plan
+      (<code>plan=free</code>, 1 instance, no preview envs). Even with a card
+      on file you can't be charged for compute unless someone explicitly
+      upgrades the plan in the dashboard. Bandwidth (100 GB/mo) and build
+      minutes (500/mo) auto-suspend rather than bill.
+    </p>
+  </details>
+
+</main>
+
+<footer>
+  TPS-703 ATP · Phase 10 + 11 · CAGE Code 97942 · generated for the merged-main deployment
+</footer>
+
+</body>
+</html>
