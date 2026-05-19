@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from config import settings
-from database import backfill_atp_definitions, get_db_connection, init_db
+from database import get_db_connection, init_db
 from seed_data import seed_all
 from services.equipment_autoregister import reconcile_equipment_with_network
 from auth.router import router as auth_router
@@ -34,14 +34,6 @@ async def lifespan(app: FastAPI):
     db = await get_db_connection()
     await seed_all(db)
     await db.close()
-    # Phase-10 backfill — copy any v1 procedures that don't yet have an
-    # atp_definitions counterpart. Idempotent on every boot.
-    try:
-        migrated = await backfill_atp_definitions()
-        if migrated:
-            print(f"Phase-10 backfill: migrated {migrated} v1 procedure(s)")
-    except Exception as exc:  # noqa: BLE001
-        print(f"Phase-10 backfill errored (non-fatal): {exc}")
     # Reconcile the equipment table against what is actually reachable on
     # this PC's network — runs BLOCKING (not background) so the table is
     # guaranteed to be clean before uvicorn starts accepting requests.
