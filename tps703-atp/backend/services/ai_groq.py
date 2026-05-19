@@ -13,9 +13,11 @@ working — AI is an enhancement, not a hard dependency.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import os
+import random
 
 import httpx
 
@@ -48,6 +50,38 @@ def _api_key() -> str:
     return key
 
 
+async def _post_with_retry(url: str, payload: dict, headers: dict) -> httpx.Response:
+    """POST to Groq with bounded exponential backoff on 429 / 5xx.
+
+    Groq's free tier rate-limits per minute. A handful of legitimate AI
+    calls fired close together can transiently 429. We retry up to 4 times
+    with jittered backoff (0.5, 1, 2, 4 seconds) before surfacing the
+    error to the caller. On the final retry we honour the
+    ``Retry-After`` header if present.
+    """
+    delays = [0.5, 1.0, 2.0, 4.0]
+    async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
+        for attempt, delay in enumerate(delays + [None]):
+            resp = await client.post(url, json=payload, headers=headers)
+            # Final attempt or success → return
+            if delay is None or resp.status_code < 500 and resp.status_code != 429:
+                return resp
+            ra = resp.headers.get("retry-after")
+            if ra:
+                try:
+                    delay = min(float(ra), 8.0)
+                except ValueError:
+                    pass
+            # Add small jitter so concurrent callers don't synchronize
+            sleep_for = delay + random.uniform(0, 0.25)
+            logger.info(
+                "Groq returned %s; retrying in %.2fs (attempt %d/%d)",
+                resp.status_code, sleep_for, attempt + 1, len(delays),
+            )
+            await asyncio.sleep(sleep_for)
+    return resp  # type: ignore[return-value]
+
+
 async def chat_json(
     *,
     system: str,
@@ -74,8 +108,7 @@ async def chat_json(
     }
     url = f"{DEFAULT_BASE_URL}/chat/completions"
 
-    async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
-        resp = await client.post(url, json=payload, headers=headers)
+    resp = await _post_with_retry(url, payload, headers)
     if resp.status_code >= 400:
         raise GroqError(f"Groq HTTP {resp.status_code}: {resp.text[:500]}")
 
@@ -118,8 +151,7 @@ async def chat_text(
         "Content-Type": "application/json",
     }
     url = f"{DEFAULT_BASE_URL}/chat/completions"
-    async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
-        resp = await client.post(url, json=payload, headers=headers)
+    resp = await _post_with_retry(url, payload, headers)
     if resp.status_code >= 400:
         raise GroqError(f"Groq HTTP {resp.status_code}: {resp.text[:500]}")
     body = resp.json()

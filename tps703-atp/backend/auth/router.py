@@ -47,7 +47,12 @@ async def _ensure_users_table(db: aiosqlite.Connection) -> None:
 
 
 async def _seed_admin_if_empty(db: aiosqlite.Connection) -> None:
-    """Seed a default admin user when the users table is empty."""
+    """Seed default admin + peer-engineer users when the users table is empty.
+
+    The peer engineer is needed so the peer-review feature is testable on
+    a fresh deploy without operator intervention (the rule is "author
+    cannot self-approve", so a single admin can't demonstrate it).
+    """
     cursor = await db.execute("SELECT COUNT(*) FROM users")
     (count,) = await cursor.fetchone()
     if count == 0:
@@ -62,6 +67,19 @@ async def _seed_admin_if_empty(db: aiosqlite.Connection) -> None:
                 "System Administrator",
                 "admin",
                 hash_password("admin123"),
+                now,
+            ),
+        )
+        await db.execute(
+            """
+            INSERT INTO users (username, full_name, role, password_hash, is_active, created_at)
+            VALUES (?, ?, ?, ?, 1, ?)
+            """,
+            (
+                "peer",
+                "Peer Engineer",
+                "engineer",
+                hash_password("peer1234"),
                 now,
             ),
         )

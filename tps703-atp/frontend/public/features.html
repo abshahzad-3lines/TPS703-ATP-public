@@ -354,7 +354,7 @@
       </div>
       <div class="card">
         <div class="label">Login</div>
-        <div class="value">admin · admin123</div>
+        <div class="value">admin · admin123 &nbsp;·&nbsp; peer · peer1234</div>
       </div>
       <div class="card">
         <div class="label">Repo</div>
@@ -542,12 +542,10 @@ echo "Token captured, length $(echo -n $TOK | wc -c | tr -d ' ')"</pre>
           <div class="label">How to test</div>
           <ol>
             <li>Submit a draft as <code>admin</code> → state becomes <code>in_review</code>.</li>
-            <li>Open the browser console:
-              <pre>await fetch('/api/auth/login', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:'peer',password:'pw1234'})}).then(r=>r.json()).then(j=>localStorage.setItem('token',j.access_token));
-location.reload();</pre>
-              (If <code>peer</code> doesn't exist yet, ask an engineer to create one.)</li>
-            <li>Now action bar shows <strong>Approve</strong> / <strong>Reject</strong>.</li>
-            <li>As <code>admin</code> again, try to Approve — it should return <strong>403 — Author cannot approve their own ATP</strong>.</li>
+            <li>Sign out (bottom-left), sign back in as <code>peer</code> / <code>peer1234</code> (auto-seeded engineer user).</li>
+            <li>Action bar swaps to <strong>Approve</strong> / <strong>Reject</strong>.</li>
+            <li>Click <strong>Approve</strong> → state moves to <code>approved</code>. <strong>Publish</strong> button appears.</li>
+            <li>To verify the gate: sign back in as <code>admin</code>, create a fresh draft, submit for review, try to call <code>/api/atp/definitions/&lt;id&gt;/approvals</code> as the author — server returns <strong>403 — Author cannot approve their own ATP</strong>.</li>
           </ol>
         </div>
       </article>
