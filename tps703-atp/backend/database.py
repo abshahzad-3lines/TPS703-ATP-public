@@ -365,5 +365,93 @@ async def init_db() -> None:
             "CREATE INDEX IF NOT EXISTS idx_atp_approvals_def ON atp_approvals(definition_id)"
         )
 
+        # ------------------------------------------------------------------
+        # Phase 11 — S-parameter workflows
+        # ------------------------------------------------------------------
+        # Stores Touchstone sweeps (.sNp), VNA cal sets (OSLT), pass/fail
+        # masks, and golden-unit references. Sweep payload lives inline as
+        # TEXT (a normalized v2 Touchstone string) — small enough to query
+        # cheaply, large enough to round-trip without lossy conversion.
+        # ------------------------------------------------------------------
+
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS sparam_sweeps (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                test_run_id INTEGER REFERENCES test_runs(id),
+                uut_id INTEGER REFERENCES units_under_test(id),
+                subsystem_id INTEGER REFERENCES subsystems(id),
+                source TEXT NOT NULL CHECK(source IN ('uploaded','captured','de_embedded','golden_ref')),
+                origin_sweep_id INTEGER REFERENCES sparam_sweeps(id),
+                cal_set_id INTEGER REFERENCES sparam_cal_sets(id),
+                filename TEXT,
+                n_ports INTEGER NOT NULL,
+                n_points INTEGER NOT NULL,
+                f_start_hz REAL NOT NULL,
+                f_stop_hz REAL NOT NULL,
+                z0_ohm REAL DEFAULT 50.0,
+                format TEXT DEFAULT 'MA' CHECK(format IN ('MA','DB','RI')),
+                touchstone_v2 TEXT NOT NULL,
+                metadata_json TEXT,
+                uploaded_by INTEGER REFERENCES users(id),
+                created_at TEXT DEFAULT (datetime('now'))
+            )
+        """)
+
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS sparam_cal_sets (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                description TEXT,
+                cal_type TEXT NOT NULL DEFAULT 'OSLT'
+                    CHECK(cal_type IN ('OSLT','SOLT','TRL')),
+                f_start_hz REAL,
+                f_stop_hz REAL,
+                open_sweep_id INTEGER REFERENCES sparam_sweeps(id),
+                short_sweep_id INTEGER REFERENCES sparam_sweeps(id),
+                load_sweep_id INTEGER REFERENCES sparam_sweeps(id),
+                thru_sweep_id INTEGER REFERENCES sparam_sweeps(id),
+                created_by INTEGER REFERENCES users(id),
+                created_at TEXT DEFAULT (datetime('now'))
+            )
+        """)
+
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS sparam_masks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                subsystem_id INTEGER REFERENCES subsystems(id),
+                param TEXT NOT NULL DEFAULT 's21',
+                quantity TEXT NOT NULL DEFAULT 'mag_db'
+                    CHECK(quantity IN ('mag_db','mag_linear','phase_deg','vswr','return_loss_db')),
+                bands_json TEXT NOT NULL,
+                created_by INTEGER REFERENCES users(id),
+                created_at TEXT DEFAULT (datetime('now'))
+            )
+        """)
+
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS sparam_golden_refs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                subsystem_id INTEGER REFERENCES subsystems(id),
+                uut_family TEXT,
+                sweep_id INTEGER NOT NULL REFERENCES sparam_sweeps(id),
+                notes TEXT,
+                created_by INTEGER REFERENCES users(id),
+                created_at TEXT DEFAULT (datetime('now')),
+                UNIQUE(subsystem_id, uut_family, name)
+            )
+        """)
+
+        await db.execute(
+            "CREATE INDEX IF NOT EXISTS idx_sparam_sweeps_run ON sparam_sweeps(test_run_id)"
+        )
+        await db.execute(
+            "CREATE INDEX IF NOT EXISTS idx_sparam_sweeps_uut ON sparam_sweeps(uut_id)"
+        )
+        await db.execute(
+            "CREATE INDEX IF NOT EXISTS idx_sparam_sweeps_subsystem ON sparam_sweeps(subsystem_id)"
+        )
+
         await db.commit()
         print(f"Database initialized at {DB_PATH} — 18 tables ready")

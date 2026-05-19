@@ -23,6 +23,7 @@ from routers.equipment_bench import router as equipment_bench_router
 from routers.equipment_bench import ws_router as equipment_bench_ws_router
 from routers.analytics import router as analytics_router
 from routers.atp import router as atp_router
+from routers.sparam import router as sparam_router
 from websocket.routes import router as ws_router
 
 
@@ -91,6 +92,7 @@ app.include_router(equipment_bench_router)
 app.include_router(equipment_bench_ws_router)
 app.include_router(analytics_router)
 app.include_router(atp_router)
+app.include_router(sparam_router)
 app.include_router(ws_router)
 
 
