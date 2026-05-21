@@ -44,3 +44,8 @@ uvicorn-debug.log.err
 
 # Vercel local state
 .vercel/
+
+# Supabase secrets
+.env.supabase
+tps703-atp/backend/.env.supabase
+.env.local

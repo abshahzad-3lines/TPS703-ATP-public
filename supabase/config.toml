@@ -1,0 +1,5 @@
+# TPS-703 ATP — Supabase project config
+project_id = "tps703-atp"
+
+[db]
+major_version = 17
