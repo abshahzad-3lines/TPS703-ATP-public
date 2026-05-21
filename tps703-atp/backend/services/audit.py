@@ -30,7 +30,10 @@ async def _write_audit_entry(
                 INSERT INTO audit_log (user_id, action, entity_type, entity_id, details)
                 VALUES (?, ?, ?, ?, ?)
                 """,
-                (user_id, action, entity_type, entity_id, details),
+                # entity_id is a TEXT column on Postgres (it can hold either a
+                # bigint PK or a uuid), so stringify the int the callers pass.
+                (user_id, action, entity_type,
+                 None if entity_id is None else str(entity_id), details),
             )
             await db.commit()
     except Exception:

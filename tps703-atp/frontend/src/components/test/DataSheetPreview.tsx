@@ -121,15 +121,25 @@ export default function DataSheetPreview({
             className="sticky z-10 bg-slate-50 shadow-[0_1px_0_0_theme(colors.border)]"
             style={{ top: stickyHeaderTop }}
           >
+            {/* Two-tier header: group what we DRIVE INTO the unit (stimulus)
+                vs. the ACCEPTANCE window vs. what we READ BACK (measured). */}
             <TableRow className="bg-slate-50">
-              <TableHead className="w-12 text-center">Step</TableHead>
-              <TableHead className="whitespace-normal">Parameter</TableHead>
-              <TableHead className="w-20 text-right">Freq (MHz)</TableHead>
-              <TableHead className="w-20 text-right">Input (dBm)</TableHead>
-              <TableHead className="w-28 text-right">Limit</TableHead>
-              <TableHead className="w-24 text-right">Measured</TableHead>
+              <TableHead rowSpan={2} className="w-12 text-center align-bottom">Step</TableHead>
+              <TableHead rowSpan={2} className="whitespace-normal align-bottom">Parameter</TableHead>
+              <TableHead colSpan={2} className="text-center border-l text-[11px] uppercase tracking-wide text-blue-700">
+                Stimulus · driven in
+              </TableHead>
+              <TableHead rowSpan={2} className="w-28 text-right align-bottom border-l">Limit</TableHead>
+              <TableHead colSpan={2} className="text-center border-l text-[11px] uppercase tracking-wide text-emerald-700">
+                Result · measured out
+              </TableHead>
+              <TableHead rowSpan={2} className="w-[72px] text-center align-bottom border-l">Status</TableHead>
+            </TableRow>
+            <TableRow className="bg-slate-50">
+              <TableHead className="w-20 text-right border-l">Freq (MHz)</TableHead>
+              <TableHead className="w-20 text-right">Power (dBm)</TableHead>
+              <TableHead className="w-24 text-right border-l">Measured</TableHead>
               <TableHead className="w-14 text-center">Unit</TableHead>
-              <TableHead className="w-[72px] text-center">Status</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -145,22 +155,22 @@ export default function DataSheetPreview({
                 >
                   <TableCell className="font-mono text-xs text-center tabular-nums">{step.step_number}</TableCell>
                   <TableCell className="text-sm whitespace-normal">{step.name}</TableCell>
-                  <TableCell className="font-mono text-xs text-right tabular-nums text-muted-foreground">
+                  <TableCell className="font-mono text-xs text-right tabular-nums text-muted-foreground border-l">
                     {step.frequency_mhz ?? '--'}
                   </TableCell>
                   <TableCell className="font-mono text-xs text-right tabular-nums text-muted-foreground">
                     {step.input_power_dbm ?? '--'}
                   </TableCell>
-                  <TableCell className="font-mono text-xs text-right tabular-nums">
+                  <TableCell className="font-mono text-xs text-right tabular-nums border-l">
                     {formatLimit(step)}
                   </TableCell>
-                  <TableCell className={cn('font-mono text-sm text-right tabular-nums', valueColor[step.pass_fail ?? 'pending'])}>
+                  <TableCell className={cn('font-mono text-sm text-right tabular-nums border-l', valueColor[step.pass_fail ?? 'pending'])}>
                     {step.measured_value != null ? Number(step.measured_value).toFixed(2) : '--'}
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground text-center">
                     {step.unit ?? ''}
                   </TableCell>
-                  <TableCell className="text-center">
+                  <TableCell className="text-center border-l">
                     {step.pass_fail && step.pass_fail !== 'pending' ? (
                       <StepStatusBadge
                         status={step.pass_fail as 'pass' | 'fail' | 'warning' | 'running' | 'pending'}

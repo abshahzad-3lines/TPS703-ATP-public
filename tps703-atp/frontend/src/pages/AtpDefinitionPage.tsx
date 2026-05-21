@@ -28,6 +28,13 @@ import {
 
 type Tab = 'steps' | 'metadata' | 'history' | 'simulation' | 'ai'
 
+const TAB_LABELS: Record<Exclude<Tab, 'ai'>, string> = {
+  steps: 'Steps',
+  metadata: 'Metadata',
+  simulation: 'Simulated run',
+  history: 'History',
+}
+
 export default function AtpDefinitionPage() {
   const { definitionId } = useParams()
   const navigate = useNavigate()
@@ -121,9 +128,11 @@ export default function AtpDefinitionPage() {
       <div className="flex gap-1 border-b">
         {(['steps','metadata','simulation','history','ai'] as Tab[]).map(t => (
           <button key={t} onClick={() => setTab(t)}
-            className={cn('px-4 py-2 text-sm border-b-2 -mb-px capitalize',
+            className={cn('px-4 py-2 text-sm border-b-2 -mb-px',
               tab === t ? 'border-blue-600 text-blue-700 font-medium' : 'border-transparent text-muted-foreground hover:text-foreground')}>
-            {t === 'ai' ? <span className="flex items-center gap-1"><Sparkles className="size-3.5" /> AI</span> : t}
+            {t === 'ai'
+              ? <span className="flex items-center gap-1"><Sparkles className="size-3.5" /> AI</span>
+              : TAB_LABELS[t]}
           </button>
         ))}
       </div>
@@ -569,9 +578,11 @@ function SimulationTab({ defn, isEng }: { defn: AtpDefinitionDetail; isEng: bool
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
         <div>
-          <CardTitle className="text-base">Golden-unit simulation</CardTitle>
+          <CardTitle className="text-base">Simulated run</CardTitle>
           <CardDescription>
-            Dry-run all steps against the in-process SimulatorDriver. No equipment needed.
+            Rehearse every step with simulated instrument readings to predict pass/fail
+            before publishing. No real equipment or unit under test — this is a software
+            dry-run, not a golden-unit comparison.
           </CardDescription>
         </div>
         {isEng && (
@@ -620,7 +631,7 @@ function SimulationTab({ defn, isEng }: { defn: AtpDefinitionDetail; isEng: bool
         )}
         {history.length > 0 && (
           <div>
-            <h4 className="text-sm font-medium mt-4 mb-2">Past simulations</h4>
+            <h4 className="text-sm font-medium mt-4 mb-2">Past simulated runs</h4>
             <Table>
               <TableHeader><TableRow><TableHead>When</TableHead><TableHead>Pass</TableHead><TableHead>Fail</TableHead><TableHead>Skip</TableHead></TableRow></TableHeader>
               <TableBody>

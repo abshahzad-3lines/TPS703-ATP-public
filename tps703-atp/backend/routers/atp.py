@@ -8,7 +8,7 @@ Backs:
 - validation
 - signed export / import bundle
 - revision diff
-- golden-unit simulation
+- simulated run (software dry-run; not a golden-unit comparison)
 """
 
 from __future__ import annotations
@@ -1123,7 +1123,7 @@ async def diff_revisions(base_id: int, target_id: int):
 
 
 # ============================================================================
-# Golden-unit simulation — Wave 4c
+# Simulated run (software dry-run) — Wave 4c
 # ============================================================================
 
 

@@ -104,15 +104,15 @@ export default function SparamDetailPage() {
       <div className="flex gap-1 border-b">
         {([
           ['plots', 'Plots', Activity],
-          ['compare', 'Compare', GitCompare],
-          ['mask', 'Mask', ShieldAlert],
-          ['deembed', 'De-embed', Cable],
+          ['compare', 'Compare vs golden', GitCompare],
+          ['mask', 'Pass/fail mask', ShieldAlert],
+          ['deembed', 'De-embed fixture', Cable],
           ['ai', 'AI', Sparkles],
         ] as const).map(([t, label, Icon]) => (
           <button
             key={t} onClick={() => setTab(t)}
             className={cn(
-              'px-4 py-2 text-sm border-b-2 -mb-px capitalize flex items-center gap-1',
+              'px-4 py-2 text-sm border-b-2 -mb-px flex items-center gap-1',
               tab === t ? 'border-blue-600 text-blue-700 font-medium'
                         : 'border-transparent text-muted-foreground hover:text-foreground'
             )}
@@ -259,9 +259,11 @@ function CompareTab({ sweepId, subsystem_id }: { sweepId: number; subsystem_id: 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Compare with golden unit</CardTitle>
+        <CardTitle className="text-base">Compare against golden unit</CardTitle>
         <CardDescription>
-          Overlay the current sweep against a registered golden reference and visualise per-frequency deltas.
+          Overlay this measured sweep against a stored sweep from a real known-good
+          reference unit (the “golden” unit) and visualise the per-frequency delta.
+          This is a measurement-to-measurement comparison — not a simulation.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

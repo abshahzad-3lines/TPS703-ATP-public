@@ -1,14 +1,17 @@
-"""Phase 10 — Golden-unit simulation.
+"""Phase 10 — Simulated run (software dry-run of a draft ATP).
 
 Runs the draft ATP's steps against the in-process ``SimulatorDriver`` and
-evaluates each measurement against the step's declared limits. Produces
-a summary row in ``atp_simulations`` plus a JSON payload listing pass /
-fail / skipped step counts and per-step results.
+evaluates each simulated measurement against the step's declared limits.
+Produces a summary row in ``atp_simulations`` plus a JSON payload listing
+pass / fail / skipped step counts and per-step results.
 
-This is a dry-run: no ``test_run``, no ``test_results``, no equipment
-contact. Engineers use it to confirm the limits + step shape will pass
-the historical "golden" measurements for a known-good UUT before
-publishing.
+This is a pure software dry-run: no ``test_run``, no ``test_results``, no
+equipment contact, and **no real unit under test**. Engineers use it to
+confirm the limits + step shape are internally consistent (i.e. a nominal
+reading would pass) before publishing. It is NOT a golden-unit comparison —
+that term is reserved for the S-parameter workflow (Phase 11), where a
+measured sweep is compared against a stored sweep from a real known-good
+reference unit.
 """
 
 from __future__ import annotations

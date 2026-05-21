@@ -19,6 +19,13 @@ const SOURCE_BADGE: Record<string, string> = {
   golden_ref:  'bg-amber-100 text-amber-700 border-amber-300',
 }
 
+const SOURCE_LABEL: Record<string, string> = {
+  uploaded:    'uploaded',
+  captured:    'captured (VNA)',
+  de_embedded: 'de-embedded',
+  golden_ref:  'golden unit',
+}
+
 export default function SparamListPage() {
   const auth = use(AuthContext)
   const isEng = auth?.user?.role === 'engineer' || auth?.user?.role === 'admin'
@@ -152,7 +159,7 @@ export default function SparamListPage() {
                 <SelectItem value="uploaded">Uploaded</SelectItem>
                 <SelectItem value="captured">Captured (VNA)</SelectItem>
                 <SelectItem value="de_embedded">De-embedded</SelectItem>
-                <SelectItem value="golden_ref">Golden ref</SelectItem>
+                <SelectItem value="golden_ref">Golden unit</SelectItem>
               </SelectContent>
             </Select>
             <span className="text-xs text-muted-foreground ml-auto">
@@ -194,7 +201,7 @@ export default function SparamListPage() {
                   </TableCell>
                   <TableCell>
                     <span className={`text-xs px-2 py-1 rounded border ${SOURCE_BADGE[s.source] ?? ''}`}>
-                      {s.source.replace('_', ' ')}
+                      {SOURCE_LABEL[s.source] ?? s.source.replace('_', ' ')}
                     </span>
                   </TableCell>
                   <TableCell className="text-right tabular-nums">{s.n_ports}</TableCell>
