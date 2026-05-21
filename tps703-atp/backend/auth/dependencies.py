@@ -10,8 +10,12 @@ import dbx
 from config import settings
 from auth.models import UserInDB
 
-# Role hierarchy — higher index = more privilege
-ROLE_HIERARCHY = ["viewer", "technician", "engineer", "admin"]
+# Role hierarchy — higher index = more privilege.
+# super_admin sits above admin; both bypass require_role checks. Kept as a
+# coarse static ladder for the legacy `require_role()` dependency that the
+# Phase-10/11 routers use. Fine-grained, DB-driven page/feature checks live
+# in services/rbac.py (require_page / require_feature).
+ROLE_HIERARCHY = ["viewer", "technician", "engineer", "admin", "super_admin"]
 
 
 async def get_current_user(

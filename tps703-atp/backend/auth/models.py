@@ -11,10 +11,9 @@ class UserBase(BaseModel):
 
     username: str
     full_name: str
-    role: str = Field(
-        ..., pattern="^(admin|engineer|technician|viewer)$",
-        description="User role: admin, engineer, technician, or viewer"
-    )
+    # Roles are now DB-driven (super_admin, admin, engineer, technician,
+    # viewer + any custom role), so we no longer hard-code a pattern here.
+    role: str = Field(..., description="Role name (validated against the roles table)")
     badge_id: Optional[str] = None
 
 

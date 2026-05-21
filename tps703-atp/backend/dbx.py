@@ -135,7 +135,16 @@ class PgConnection:
             has_returning = True
 
         if pg_sql.lstrip()[:6].upper() in ("SELECT", "WITH ") or pg_sql.lstrip()[:4].upper() == "WITH" or has_returning:
-            rows = await self._conn.fetch(pg_sql, *params)
+            try:
+                rows = await self._conn.fetch(pg_sql, *params)
+            except Exception as e:  # noqa: BLE001
+                # Tables without an `id` column (e.g. roles, role_pages) reject
+                # the auto-appended RETURNING id. Retry without it.
+                if "RETURNING id" in pg_sql and "id" in str(e).lower():
+                    plain = pg_sql.rsplit(" RETURNING id", 1)[0]
+                    await self._conn.execute(plain, *params)
+                    return _PgCursor([], None)
+                raise
             lastrowid = None
             if is_insert and rows:
                 try:

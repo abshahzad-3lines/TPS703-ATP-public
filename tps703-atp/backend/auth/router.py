@@ -202,7 +202,17 @@ async def refresh(request: RefreshRequest) -> Token:
 
 @router.get("/me")
 async def get_me(current_user: UserInDB = Depends(get_current_user)) -> dict:
-    """Return the authenticated user's profile information."""
+    """Return the authenticated user's profile + the pages/features their
+    role may access (so the frontend can gate routes + the sidebar)."""
+    from services.rbac import get_allowed_pages, SUPER_ADMIN, ADMIN
+
+    # super_admin / admin see everything; the frontend treats an empty list +
+    # is_super/is_admin flags as "all". For other roles we return the explicit
+    # grants from role_pages.
+    allowed_pages: list[str] = []
+    if current_user.role not in (SUPER_ADMIN, ADMIN):
+        allowed_pages = await get_allowed_pages(current_user.role)
+
     return {
         "id": current_user.id,
         "username": current_user.username,
@@ -210,6 +220,9 @@ async def get_me(current_user: UserInDB = Depends(get_current_user)) -> dict:
         "role": current_user.role,
         "badge_id": current_user.badge_id,
         "is_active": current_user.is_active,
+        "is_super_admin": current_user.role == SUPER_ADMIN,
+        "is_admin": current_user.role in (SUPER_ADMIN, ADMIN),
+        "allowed_pages": allowed_pages,
         "created_at": current_user.created_at.isoformat()
         if hasattr(current_user.created_at, "isoformat")
         else str(current_user.created_at),
