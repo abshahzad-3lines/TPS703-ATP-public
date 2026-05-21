@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import json
 
-import aiosqlite
+import dbx
 from fastapi import APIRouter, Body, Depends, HTTPException, UploadFile, File, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
@@ -564,7 +564,7 @@ async def add_step(
                     1 if body.is_record_only else 0,
                 ),
             )
-        except aiosqlite.IntegrityError as e:
+        except dbx.IntegrityError as e:
             raise HTTPException(status.HTTP_409_CONFLICT, str(e))
 
         new_id = cur.lastrowid

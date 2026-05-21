@@ -33,6 +33,15 @@ from config import settings
 # tooling that still consults it.
 DB_BACKEND = os.environ.get("DB_BACKEND", "postgres").lower()
 
+# Constraint-violation exception, for callers that translate it into HTTP 409.
+# asyncpg raises subclasses of IntegrityConstraintViolationError (e.g.
+# UniqueViolationError); aiosqlite raised aiosqlite.IntegrityError.
+try:
+    from asyncpg.exceptions import IntegrityConstraintViolationError as IntegrityError
+except Exception:  # noqa: BLE001 — asyncpg unavailable in some tooling contexts
+    class IntegrityError(Exception):  # type: ignore[no-redef]
+        pass
+
 # ---------------------------------------------------------------------------
 # Postgres shim
 # ---------------------------------------------------------------------------
