@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 import aiosqlite
 from fastapi import APIRouter, Depends, HTTPException, status
 
+import dbx
 from config import settings
 from auth.dependencies import get_current_user
 from auth.models import LoginRequest, Token, UserInDB
@@ -117,10 +118,11 @@ async def login(request: LoginRequest) -> Token:
 
     On first login attempt, seeds a default admin user if the table is empty.
     """
-    async with aiosqlite.connect(settings.DB_PATH) as db:
+    async with dbx.connect() as db:
         db.row_factory = aiosqlite.Row
-        await _ensure_users_table(db)
-        await _seed_admin_if_empty(db)
+        if not dbx.is_postgres():
+            await _ensure_users_table(db)
+            await _seed_admin_if_empty(db)
 
         cursor = await db.execute(
             "SELECT * FROM users WHERE username = ?", (request.username,)
@@ -180,7 +182,7 @@ async def refresh(request: RefreshRequest) -> Token:
         raise credentials_exception
 
     # Verify user still exists and is active
-    async with aiosqlite.connect(settings.DB_PATH) as db:
+    async with dbx.connect() as db:
         db.row_factory = aiosqlite.Row
         cursor = await db.execute(
             "SELECT * FROM users WHERE username = ?", (username,)

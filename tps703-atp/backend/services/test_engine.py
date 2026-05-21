@@ -21,6 +21,7 @@ from typing import Any, Optional
 
 import aiosqlite
 
+import dbx
 from config import settings
 
 
@@ -200,7 +201,7 @@ class TestEngine:
         Raises:
             TestRunNotFound: If the procedure or UUT does not exist.
         """
-        async with aiosqlite.connect(settings.DB_PATH) as db:
+        async with dbx.connect() as db:
             db.row_factory = aiosqlite.Row
             await db.execute("PRAGMA foreign_keys = ON")
 
@@ -289,7 +290,7 @@ class TestEngine:
         state.status = "running"
         state.started_at = self._utcnow()
 
-        async with aiosqlite.connect(settings.DB_PATH) as db:
+        async with dbx.connect() as db:
             await db.execute(
                 "UPDATE test_runs SET status = 'running', started_at = ? WHERE id = ?",
                 (state.started_at, run_id),
@@ -303,7 +304,7 @@ class TestEngine:
         self._validate_transition(state.status, "paused")
         state.status = "paused"
 
-        async with aiosqlite.connect(settings.DB_PATH) as db:
+        async with dbx.connect() as db:
             await db.execute(
                 "UPDATE test_runs SET status = 'paused' WHERE id = ?", (run_id,)
             )
@@ -316,7 +317,7 @@ class TestEngine:
         self._validate_transition(state.status, "running")
         state.status = "running"
 
-        async with aiosqlite.connect(settings.DB_PATH) as db:
+        async with dbx.connect() as db:
             await db.execute(
                 "UPDATE test_runs SET status = 'running' WHERE id = ?", (run_id,)
             )
@@ -330,7 +331,7 @@ class TestEngine:
         state.status = "aborted"
         state.completed_at = self._utcnow()
 
-        async with aiosqlite.connect(settings.DB_PATH) as db:
+        async with dbx.connect() as db:
             await db.execute(
                 "UPDATE test_runs SET status = 'aborted', completed_at = ? WHERE id = ?",
                 (state.completed_at, run_id),
@@ -369,7 +370,7 @@ class TestEngine:
             run_id, final_status, state.completed_at
         )
 
-        async with aiosqlite.connect(settings.DB_PATH) as db:
+        async with dbx.connect() as db:
             await db.execute(
                 "UPDATE test_runs SET status = ?, completed_at = ?, signature_hash = ? WHERE id = ?",
                 (final_status, state.completed_at, signature_hash, run_id),
@@ -389,7 +390,7 @@ class TestEngine:
         step number) concatenated with ':', plus the run_id, final status, and
         completion timestamp.
         """
-        async with aiosqlite.connect(settings.DB_PATH) as db:
+        async with dbx.connect() as db:
             db.row_factory = aiosqlite.Row
             cursor = await db.execute(
                 """SELECT tr.integrity_hash
@@ -464,7 +465,7 @@ class TestEngine:
         if run_id in self._active_runs:
             return self._active_runs[run_id]
 
-        async with aiosqlite.connect(settings.DB_PATH) as db:
+        async with dbx.connect() as db:
             db.row_factory = aiosqlite.Row
             cursor = await db.execute(
                 "SELECT * FROM test_runs WHERE id = ?", (run_id,)

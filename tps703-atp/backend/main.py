@@ -32,9 +32,13 @@ async def lifespan(app: FastAPI):
     """Application lifespan: startup and shutdown events."""
     print("ATP System starting")
     await init_db()
-    db = await get_db_connection()
-    await seed_all(db)
-    await db.close()
+    import dbx
+    if not dbx.is_postgres():
+        # Postgres schema + seed live in supabase/migrations/; only the
+        # SQLite path needs runtime seeding.
+        db = await get_db_connection()
+        await seed_all(db)
+        await db.close()
     # Reconcile the equipment table against what is actually reachable on
     # this PC's network — runs BLOCKING (not background) so the table is
     # guaranteed to be clean before uvicorn starts accepting requests.
@@ -49,16 +53,22 @@ async def lifespan(app: FastAPI):
     # Result: every is_active=1 row at the end is either probe-reachable
     # or freshly healed. Discovery failures are swallowed (rows from
     # pass 1 still survive).
-    try:
-        stats = await reconcile_equipment_with_network(mdns_timeout=3.0)
-        print(
-            f"Equipment reconcile complete: discovered={stats['discovered']} "
-            f"unreachable={stats['unreachable']} healed={stats['healed']} "
-            f"inserted={stats['inserted']} deactivated={stats['deactivated']}"
-        )
-    except Exception as exc:  # noqa: BLE001
-        # Never block server startup on a reconcile bug.
-        print(f"Equipment reconcile errored (non-fatal): {exc}")
+    import dbx as _dbx
+    if _dbx.is_postgres():
+        # Cloud Postgres deploy has no lab instruments on its network, and the
+        # mDNS/PyVISA reconcile path is SQLite-shaped. Skip it entirely.
+        print("DB backend = postgres; skipping hardware reconcile (no LAN instruments)")
+    else:
+        try:
+            stats = await reconcile_equipment_with_network(mdns_timeout=3.0)
+            print(
+                f"Equipment reconcile complete: discovered={stats['discovered']} "
+                f"unreachable={stats['unreachable']} healed={stats['healed']} "
+                f"inserted={stats['inserted']} deactivated={stats['deactivated']}"
+            )
+        except Exception as exc:  # noqa: BLE001
+            # Never block server startup on a reconcile bug.
+            print(f"Equipment reconcile errored (non-fatal): {exc}")
     yield
     print("ATP System shutting down")
 

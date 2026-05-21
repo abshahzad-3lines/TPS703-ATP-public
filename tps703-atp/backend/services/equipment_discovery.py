@@ -25,6 +25,7 @@ from typing import Any
 
 import aiosqlite
 
+import dbx
 from config import settings
 
 logger = logging.getLogger(__name__)
@@ -467,7 +468,7 @@ async def _registered_serials_and_resources() -> tuple[set[str], set[str]]:
     deleted instrument can be rediscovered and re-registered without manual cleanup.
     """
     try:
-        async with aiosqlite.connect(settings.DB_PATH) as db:
+        async with dbx.connect() as db:
             db.row_factory = aiosqlite.Row
             cursor = await db.execute(
                 "SELECT serial_number, connection_address FROM equipment WHERE is_active = 1"

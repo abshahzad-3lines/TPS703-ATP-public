@@ -21,6 +21,7 @@ import aiosqlite
 import numpy as np
 import skrf
 
+import dbx
 from config import settings
 from services import sparam_io
 
@@ -60,7 +61,7 @@ async def archive_capture(
         body = sparam_io.write_touchstone_v2(ntwk)
         summ = sparam_io.summarize(ntwk)
 
-        async with aiosqlite.connect(settings.DB_PATH) as db:
+        async with dbx.connect() as db:
             cur = await db.execute(
                 """
                 INSERT INTO sparam_sweeps (

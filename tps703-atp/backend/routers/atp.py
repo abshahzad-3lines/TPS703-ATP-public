@@ -90,11 +90,11 @@ class DefinitionSummary(BaseModel):
     state: str
     source: str
     parent_definition_id: int | None = None
-    created_by: int | None = None
+    created_by: int | str | None = None
     created_at: str | None = None
     updated_at: str | None = None
     published_at: str | None = None
-    published_by: int | None = None
+    published_by: int | str | None = None
     superseded_at: str | None = None
     superseded_by_definition_id: int | None = None
     step_count: int = 0
@@ -104,14 +104,14 @@ class TransitionRow(BaseModel):
     id: int
     from_state: str | None
     to_state: str
-    user_id: int | None
+    user_id: int | str | None
     comment: str | None
     transitioned_at: str
 
 
 class ApprovalRow(BaseModel):
     id: int
-    approver_id: int
+    approver_id: int | str
     decision: str
     comment: str | None
     decided_at: str

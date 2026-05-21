@@ -22,6 +22,7 @@ from reportlab.platypus import (
     PageBreak,
 )
 
+import dbx
 from config import settings
 
 # Colours used in the certificate
@@ -36,7 +37,7 @@ CAGE_CODE = "97942"
 
 async def _fetch_run_data(run_id: int) -> dict[str, Any] | None:
     """Fetch all data needed for the certificate from the database."""
-    async with aiosqlite.connect(settings.DB_PATH) as db:
+    async with dbx.connect() as db:
         db.row_factory = aiosqlite.Row
 
         # Test run

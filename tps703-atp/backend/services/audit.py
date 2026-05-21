@@ -5,6 +5,7 @@ import logging
 
 import aiosqlite
 
+import dbx
 from config import settings
 
 logger = logging.getLogger(__name__)
@@ -24,7 +25,7 @@ async def _write_audit_entry(
     the main request flow.
     """
     try:
-        async with aiosqlite.connect(settings.DB_PATH) as db:
+        async with dbx.connect() as db:
             await db.execute(
                 """
                 INSERT INTO audit_log (user_id, action, entity_type, entity_id, details)

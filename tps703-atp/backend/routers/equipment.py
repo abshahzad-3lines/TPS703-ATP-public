@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 
 from auth.dependencies import get_current_user, require_role
 from auth.models import UserInDB
+import dbx
 from config import settings
 from services.audit import log_audit
 from services.equipment_autoregister import reconcile_equipment_with_network
@@ -156,7 +157,7 @@ async def list_equipment(
     current_user: UserInDB = Depends(get_current_user),
 ) -> list[EquipmentResponse]:
     """List all equipment records with optional filtering."""
-    async with aiosqlite.connect(settings.DB_PATH) as db:
+    async with dbx.connect() as db:
         db.row_factory = aiosqlite.Row
 
         conditions: list[str] = []
@@ -198,7 +199,7 @@ async def create_equipment(
     current_user: UserInDB = Depends(require_role("technician")),
 ) -> EquipmentResponse:
     """Create a new equipment record. Requires technician role or higher."""
-    async with aiosqlite.connect(settings.DB_PATH) as db:
+    async with dbx.connect() as db:
         db.row_factory = aiosqlite.Row
 
         cursor = await db.execute(
@@ -251,7 +252,7 @@ async def get_equipment(
     current_user: UserInDB = Depends(get_current_user),
 ) -> EquipmentResponse:
     """Get a single equipment record by ID."""
-    async with aiosqlite.connect(settings.DB_PATH) as db:
+    async with dbx.connect() as db:
         db.row_factory = aiosqlite.Row
         cursor = await db.execute(
             "SELECT * FROM equipment WHERE id = ?", (equipment_id,)
@@ -278,7 +279,7 @@ async def update_equipment(
     current_user: UserInDB = Depends(require_role("engineer")),
 ) -> EquipmentResponse:
     """Update an existing equipment record. Requires engineer role or higher."""
-    async with aiosqlite.connect(settings.DB_PATH) as db:
+    async with dbx.connect() as db:
         db.row_factory = aiosqlite.Row
 
         # Check equipment exists
@@ -344,7 +345,7 @@ async def delete_equipment(
     current_user: UserInDB = Depends(require_role("admin")),
 ) -> dict:
     """Soft-delete an equipment record (set is_active=0). Requires admin role."""
-    async with aiosqlite.connect(settings.DB_PATH) as db:
+    async with dbx.connect() as db:
         db.row_factory = aiosqlite.Row
 
         cursor = await db.execute(
@@ -392,7 +393,7 @@ async def test_connection(
     For other types, attempts to instantiate the appropriate driver,
     call connect() + identify(), and returns the IDN string or error.
     """
-    async with aiosqlite.connect(settings.DB_PATH) as db:
+    async with dbx.connect() as db:
         db.row_factory = aiosqlite.Row
         cursor = await db.execute(
             "SELECT * FROM equipment WHERE id = ?", (equipment_id,)
@@ -545,7 +546,7 @@ async def auto_register_equipment(
     """
     created: list[EquipmentResponse] = []
 
-    async with aiosqlite.connect(settings.DB_PATH) as db:
+    async with dbx.connect() as db:
         db.row_factory = aiosqlite.Row
 
         cursor = await db.execute(

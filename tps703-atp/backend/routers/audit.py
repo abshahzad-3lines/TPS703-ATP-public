@@ -8,6 +8,7 @@ from pydantic import BaseModel
 
 from auth.dependencies import require_role
 from auth.models import UserInDB
+import dbx
 from config import settings
 
 router = APIRouter(prefix="/api/audit", tags=["audit"])
@@ -117,7 +118,7 @@ async def list_audit_log(
     """
     params.append(limit)
 
-    async with aiosqlite.connect(settings.DB_PATH) as db:
+    async with dbx.connect() as db:
         db.row_factory = aiosqlite.Row
         cursor = await db.execute(query, params)
         rows = await cursor.fetchall()

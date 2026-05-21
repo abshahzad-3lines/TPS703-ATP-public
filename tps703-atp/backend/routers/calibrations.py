@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 
 from auth.dependencies import get_current_user, require_role
 from auth.models import UserInDB
+import dbx
 from config import settings
 from services.audit import log_audit
 
@@ -112,7 +113,7 @@ async def create_calibration(
     Requires Technician role or higher.  Automatically sets ``performed_at``
     to the current UTC time and ``expires_at`` to 24 hours later.
     """
-    async with aiosqlite.connect(settings.DB_PATH) as db:
+    async with dbx.connect() as db:
         db.row_factory = aiosqlite.Row
         await db.execute("PRAGMA foreign_keys = ON")
 
@@ -262,7 +263,7 @@ async def get_calibration_parameters(
     """
     from seed_data import CALIBRATION_PARAMETERS
 
-    async with aiosqlite.connect(settings.DB_PATH) as db:
+    async with dbx.connect() as db:
         db.row_factory = aiosqlite.Row
         cursor = await db.execute(
             "SELECT id, drawing_no, name FROM subsystems WHERE id = ?",
@@ -317,7 +318,7 @@ async def get_valid_calibration(
     Returns 404 if no valid calibration exists.  The response includes the
     time remaining until expiry in both seconds and a human-readable string.
     """
-    async with aiosqlite.connect(settings.DB_PATH) as db:
+    async with dbx.connect() as db:
         db.row_factory = aiosqlite.Row
         await db.execute("PRAGMA foreign_keys = ON")
 

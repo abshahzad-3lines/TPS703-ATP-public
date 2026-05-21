@@ -20,6 +20,7 @@ from pydantic import BaseModel, Field
 
 from auth.dependencies import require_role
 from auth.models import UserInDB
+import dbx
 from config import settings
 from drivers import driver_factory
 from drivers.base import InstrumentDriver
@@ -81,7 +82,7 @@ class ScpiResponse(BaseModel):
 
 async def _load_equipment(equipment_id: int) -> dict[str, Any]:
     """Load an equipment row by id; raise 404 if missing."""
-    async with aiosqlite.connect(settings.DB_PATH) as db:
+    async with dbx.connect() as db:
         db.row_factory = aiosqlite.Row
         cursor = await db.execute(
             "SELECT * FROM equipment WHERE id = ?", (equipment_id,)

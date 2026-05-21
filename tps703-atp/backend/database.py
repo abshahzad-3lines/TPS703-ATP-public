@@ -2,21 +2,27 @@
 
 import aiosqlite
 
+import dbx
 from config import settings
 
 DB_PATH = settings.DB_PATH
 
 
-async def get_db_connection() -> aiosqlite.Connection:
-    """Return an aiosqlite connection with Row factory enabled."""
-    db = await aiosqlite.connect(DB_PATH)
-    db.row_factory = aiosqlite.Row
-    await db.execute("PRAGMA foreign_keys = ON")
-    return db
+async def get_db_connection():
+    """Return a DB connection with the aiosqlite-compatible interface
+    (real aiosqlite, or the Postgres shim when DB_BACKEND=postgres)."""
+    return await dbx.connect()
 
 
 async def init_db() -> None:
-    """Create all 11 tables if they do not already exist."""
+    """Create the schema if needed.
+
+    On Postgres the schema lives in supabase/migrations/ (already applied to
+    the project), so this is a no-op. On SQLite it builds every table.
+    """
+    if dbx.is_postgres():
+        print("DB backend = postgres; schema owned by supabase/migrations/")
+        return
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute("PRAGMA foreign_keys = ON")
 

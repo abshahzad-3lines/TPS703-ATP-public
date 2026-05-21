@@ -20,6 +20,7 @@ from typing import Optional
 
 import aiosqlite
 
+import dbx
 from config import settings
 from drivers import driver_factory, get_driver
 from drivers.base import InstrumentDriver
@@ -225,7 +226,7 @@ async def _equipment_for_role(role: str) -> Optional[dict]:
 
     Returns ``None`` when no matching active row exists.
     """
-    async with aiosqlite.connect(settings.DB_PATH) as db:
+    async with dbx.connect() as db:
         db.row_factory = aiosqlite.Row
         cursor = await db.execute(
             "SELECT * FROM equipment WHERE instrument_role = ? AND is_active = 1 "

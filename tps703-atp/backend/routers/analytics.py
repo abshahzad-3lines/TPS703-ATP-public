@@ -8,6 +8,7 @@ from pydantic import BaseModel
 
 from auth.dependencies import get_current_user
 from auth.models import UserInDB
+import dbx
 from config import settings
 
 router = APIRouter(prefix="/api/analytics", tags=["analytics"])
@@ -70,7 +71,7 @@ async def get_analytics_summary(
 ) -> AnalyticsSummaryResponse:
     """Return KPI summary for the dashboard."""
 
-    async with aiosqlite.connect(settings.DB_PATH) as db:
+    async with dbx.connect() as db:
         db.row_factory = aiosqlite.Row
 
         # 30-day stats
@@ -153,7 +154,7 @@ async def get_daily_trend(
 ) -> list[DailyTrendItem]:
     """Return daily pass/fail counts and pass rate."""
 
-    async with aiosqlite.connect(settings.DB_PATH) as db:
+    async with dbx.connect() as db:
         db.row_factory = aiosqlite.Row
 
         cursor = await db.execute(
@@ -202,7 +203,7 @@ async def get_subsystem_breakdown(
 ) -> list[SubsystemBreakdownItem]:
     """Return per-subsystem pass/fail breakdown."""
 
-    async with aiosqlite.connect(settings.DB_PATH) as db:
+    async with dbx.connect() as db:
         db.row_factory = aiosqlite.Row
 
         cursor = await db.execute(
@@ -256,7 +257,7 @@ async def get_top_failures(
 ) -> list[TopFailureItem]:
     """Return the most frequently-failing test steps."""
 
-    async with aiosqlite.connect(settings.DB_PATH) as db:
+    async with dbx.connect() as db:
         db.row_factory = aiosqlite.Row
 
         cursor = await db.execute(

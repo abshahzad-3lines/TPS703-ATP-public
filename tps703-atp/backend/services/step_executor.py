@@ -7,6 +7,7 @@ from typing import Optional
 
 import aiosqlite
 
+import dbx
 from config import settings
 from drivers.base import InstrumentDriver
 
@@ -86,7 +87,7 @@ class StepExecutor:
         measured_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
         integrity_hash = compute_integrity_hash(run_id, step_id, measured_value, pass_fail, measured_at)
 
-        async with aiosqlite.connect(settings.DB_PATH) as db:
+        async with dbx.connect() as db:
             await db.execute(
                 """INSERT INTO test_results
                    (test_run_id, step_id, measured_value, secondary_value,

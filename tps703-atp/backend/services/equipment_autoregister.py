@@ -42,6 +42,7 @@ from typing import Any, Optional
 
 import aiosqlite
 
+import dbx
 from config import settings
 from drivers import driver_factory
 from drivers.base import InstrumentDriver
@@ -154,7 +155,7 @@ async def reconcile_equipment_with_network(mdns_timeout: float = 3.0) -> dict[st
         "unreachable": 0,
     }
 
-    async with aiosqlite.connect(settings.DB_PATH) as db:
+    async with dbx.connect() as db:
         db.row_factory = aiosqlite.Row
         await db.execute("PRAGMA foreign_keys = ON")
 
@@ -211,7 +212,7 @@ async def reconcile_equipment_with_network(mdns_timeout: float = 3.0) -> dict[st
         if sn:
             by_serial[sn] = entry
 
-    async with aiosqlite.connect(settings.DB_PATH) as db:
+    async with dbx.connect() as db:
         db.row_factory = aiosqlite.Row
         await db.execute("PRAGMA foreign_keys = ON")
 

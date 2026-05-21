@@ -9,6 +9,7 @@ from fastapi.responses import Response
 
 from auth.dependencies import get_current_user
 from auth.models import UserInDB
+import dbx
 from config import settings
 
 router = APIRouter(prefix="/api/results", tags=["exports"])
@@ -38,7 +39,7 @@ async def export_results_csv(
 
     Requires at least **viewer** role (any authenticated user).
     """
-    async with aiosqlite.connect(settings.DB_PATH) as db:
+    async with dbx.connect() as db:
         db.row_factory = aiosqlite.Row
 
         # ------------------------------------------------------------------

@@ -6,6 +6,7 @@ import aiosqlite
 from fastapi import Header, HTTPException, status
 from jose import JWTError, jwt
 
+import dbx
 from config import settings
 from auth.models import UserInDB
 
@@ -46,7 +47,7 @@ async def get_current_user(
         raise credentials_exception
 
     # Look up user in the database
-    async with aiosqlite.connect(settings.DB_PATH) as db:
+    async with dbx.connect() as db:
         db.row_factory = aiosqlite.Row
         cursor = await db.execute(
             "SELECT * FROM users WHERE username = ?", (username,)

@@ -22,6 +22,7 @@ from fastapi import HTTPException, status
 
 from auth.models import UserInDB
 from auth.dependencies import ROLE_HIERARCHY
+import dbx
 from config import settings
 from services.audit import log_audit
 
@@ -92,7 +93,7 @@ async def transition(
             detail=f"Unknown state: {to_state}",
         )
 
-    async with aiosqlite.connect(settings.DB_PATH) as db:
+    async with dbx.connect() as db:
         db.row_factory = aiosqlite.Row
         await db.execute("PRAGMA foreign_keys = ON")
 
@@ -231,7 +232,7 @@ async def create_new_revision(
     The new row's ``parent_definition_id`` points to the source; ``revision``
     auto-bumps (A → B → … → Z → AA) when ``new_revision`` is not given.
     """
-    async with aiosqlite.connect(settings.DB_PATH) as db:
+    async with dbx.connect() as db:
         db.row_factory = aiosqlite.Row
         await db.execute("PRAGMA foreign_keys = ON")
 

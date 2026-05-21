@@ -12,6 +12,7 @@ from pydantic import BaseModel
 
 from auth.dependencies import get_current_user, require_role
 from auth.models import UserInDB
+import dbx
 from config import settings
 from services.pdf_generator import generate_test_certificate
 
@@ -112,7 +113,7 @@ async def list_results(
     where_clause = " AND ".join(conditions) if conditions else "1=1"
     params.append(limit)
 
-    async with aiosqlite.connect(settings.DB_PATH) as db:
+    async with dbx.connect() as db:
         db.row_factory = aiosqlite.Row
         cursor = await db.execute(
             f"""
@@ -182,7 +183,7 @@ async def get_result_summary(
     """Return a detailed summary of a specific test run including step-level
     pass/fail/warning/skipped counts and an overall verdict.
     """
-    async with aiosqlite.connect(settings.DB_PATH) as db:
+    async with dbx.connect() as db:
         db.row_factory = aiosqlite.Row
 
         cursor = await db.execute(
@@ -357,7 +358,7 @@ async def sign_test_run(
     Requires at least the **engineer** role. The run must be in a terminal
     state (passed or failed) and must not already be signed.
     """
-    async with aiosqlite.connect(settings.DB_PATH) as db:
+    async with dbx.connect() as db:
         db.row_factory = aiosqlite.Row
         cursor = await db.execute(
             "SELECT * FROM test_runs WHERE id = ?", (run_id,)
@@ -393,7 +394,7 @@ async def sign_test_run(
         hashlib.sha256,
     ).hexdigest()
 
-    async with aiosqlite.connect(settings.DB_PATH) as db:
+    async with dbx.connect() as db:
         await db.execute(
             "UPDATE test_runs SET signed_by = ?, signature_hash = ? WHERE id = ?",
             (current_user.id, signature_hash, run_id),
@@ -419,7 +420,7 @@ async def get_signature(
     current_user: UserInDB = Depends(get_current_user),
 ) -> SignatureDetailResponse:
     """Return the digital signature details for a signed test run."""
-    async with aiosqlite.connect(settings.DB_PATH) as db:
+    async with dbx.connect() as db:
         db.row_factory = aiosqlite.Row
         cursor = await db.execute(
             """

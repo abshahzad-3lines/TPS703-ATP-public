@@ -158,7 +158,7 @@ async def _insert_sweep(
     subsystem_id: int | None = None,
     origin_sweep_id: int | None = None,
     cal_set_id: int | None = None,
-    uploaded_by: int | None = None,
+    uploaded_by: int | str | None = None,
     metadata: dict | None = None,
 ) -> int:
     summ = sparam_io.summarize(ntwk)

@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 
 from auth.dependencies import get_current_user, require_role
 from auth.models import UserInDB
+import dbx
 from config import settings
 from services.audit import log_audit
 
@@ -82,7 +83,7 @@ async def create_uut(
     Requires at least the **technician** role.  The combination of
     ``subsystem_id`` and ``serial_number`` must be unique.
     """
-    async with aiosqlite.connect(settings.DB_PATH) as db:
+    async with dbx.connect() as db:
         db.row_factory = aiosqlite.Row
         await db.execute("PRAGMA foreign_keys = ON")
 
@@ -150,7 +151,7 @@ async def list_uuts(
 
     Includes subsystem drawing number and name for convenience.
     """
-    async with aiosqlite.connect(settings.DB_PATH) as db:
+    async with dbx.connect() as db:
         db.row_factory = aiosqlite.Row
 
         base_query = """
@@ -200,7 +201,7 @@ async def get_uut(
     current_user: UserInDB = Depends(get_current_user),
 ) -> UUTDetailResponse:
     """Return a single UUT by ID, including subsystem information."""
-    async with aiosqlite.connect(settings.DB_PATH) as db:
+    async with dbx.connect() as db:
         db.row_factory = aiosqlite.Row
 
         cursor = await db.execute(
@@ -253,7 +254,7 @@ async def get_uut_history(
 
     Joins with ``test_procedures`` to include the procedure code and name.
     """
-    async with aiosqlite.connect(settings.DB_PATH) as db:
+    async with dbx.connect() as db:
         db.row_factory = aiosqlite.Row
 
         # First verify the UUT exists

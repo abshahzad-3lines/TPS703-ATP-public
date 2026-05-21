@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 
 from auth.dependencies import get_current_user, require_role
 from auth.models import UserInDB
+import dbx
 from config import settings
 from services.step_executor import compute_integrity_hash
 from services.test_engine import (
@@ -30,7 +31,7 @@ router = APIRouter(prefix="/api/test-runs", tags=["test-runs"])
 
 async def _load_terminal_run(run_id: int) -> RunState:
     """Load a terminal-state run from DB as a read-only snapshot."""
-    async with aiosqlite.connect(settings.DB_PATH) as db:
+    async with dbx.connect() as db:
         db.row_factory = aiosqlite.Row
         cursor = await db.execute("SELECT * FROM test_runs WHERE id = ?", (run_id,))
         run_row = await cursor.fetchone()
@@ -195,7 +196,7 @@ async def create_test_run(
     a valid (unexpired) calibration must exist for the subsystem.
     """
     # --- Enforce calibration requirement ---
-    async with aiosqlite.connect(settings.DB_PATH) as db:
+    async with dbx.connect() as db:
         db.row_factory = aiosqlite.Row
         cursor = await db.execute(
             """SELECT tp.requires_calibration, tp.subsystem_id, tp.code
@@ -206,7 +207,7 @@ async def create_test_run(
 
     if proc_row and proc_row["requires_calibration"]:
         sub_id = proc_row["subsystem_id"]
-        async with aiosqlite.connect(settings.DB_PATH) as db:
+        async with dbx.connect() as db:
             db.row_factory = aiosqlite.Row
             cursor = await db.execute(
                 """SELECT id FROM calibrations
@@ -249,7 +250,7 @@ async def create_test_run(
     )
 
     # Fetch the created row from the database for the response
-    async with aiosqlite.connect(settings.DB_PATH) as db:
+    async with dbx.connect() as db:
         db.row_factory = aiosqlite.Row
         cursor = await db.execute(
             "SELECT * FROM test_runs WHERE id = ?", (run_id,)
@@ -283,7 +284,7 @@ async def get_recent_test_runs(
 
     Used by the dashboard's RecentTestsTable component.
     """
-    async with aiosqlite.connect(settings.DB_PATH) as db:
+    async with dbx.connect() as db:
         db.row_factory = aiosqlite.Row
         cursor = await db.execute(
             """
@@ -343,7 +344,7 @@ async def get_test_run(
     current_user: UserInDB = Depends(get_current_user),
 ) -> TestRunResponse:
     """Return a single test run by ID from the database."""
-    async with aiosqlite.connect(settings.DB_PATH) as db:
+    async with dbx.connect() as db:
         db.row_factory = aiosqlite.Row
         cursor = await db.execute(
             "SELECT * FROM test_runs WHERE id = ?", (run_id,)
@@ -402,7 +403,7 @@ async def get_test_run_state(
     d = state.to_dict()
 
     # Fetch joined metadata for the data sheet header
-    async with aiosqlite.connect(settings.DB_PATH) as db:
+    async with dbx.connect() as db:
         db.row_factory = aiosqlite.Row
         cursor = await db.execute(
             """
@@ -610,7 +611,7 @@ async def verify_test_run_integrity(
 
     Requires at least the **engineer** role.
     """
-    async with aiosqlite.connect(settings.DB_PATH) as db:
+    async with dbx.connect() as db:
         db.row_factory = aiosqlite.Row
 
         # Load the test run
@@ -759,7 +760,7 @@ async def get_result_detail(
     Joins test_runs, test_procedures, subsystems, units_under_test, users,
     test_results, and test_steps to produce a complete data sheet view.
     """
-    async with aiosqlite.connect(settings.DB_PATH) as db:
+    async with dbx.connect() as db:
         db.row_factory = aiosqlite.Row
 
         # Fetch run metadata with joins

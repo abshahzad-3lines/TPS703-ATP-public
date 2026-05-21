@@ -25,12 +25,16 @@ class UserCreate(UserBase):
 
 
 class UserInDB(UserBase):
-    """User as stored in the database (includes hashed password)."""
+    """User as stored in the database (includes hashed password).
 
-    id: int
+    ``id`` is ``int`` on SQLite (autoincrement) and a ``uuid`` string on
+    Postgres/Supabase (profiles.id), so it accepts both.
+    """
+
+    id: int | str
     password_hash: str
     is_active: bool = True
-    created_at: datetime
+    created_at: datetime | str
 
 
 class Token(BaseModel):
