@@ -28,7 +28,10 @@ import re
 
 from config import settings
 
-DB_BACKEND = os.environ.get("DB_BACKEND", "sqlite").lower()
+# Postgres/Supabase is the only supported backend. The variable is kept
+# (defaulting to "postgres") so is_postgres() stays truthful for any code or
+# tooling that still consults it.
+DB_BACKEND = os.environ.get("DB_BACKEND", "postgres").lower()
 
 # ---------------------------------------------------------------------------
 # Postgres shim
@@ -190,13 +193,11 @@ async def _pg_connect() -> PgConnection:
 
 
 async def _open_connection():
-    if DB_BACKEND == "postgres":
-        return await _pg_connect()
-    import aiosqlite
-    db = await aiosqlite.connect(settings.DB_PATH)
-    db.row_factory = aiosqlite.Row
-    await db.execute("PRAGMA foreign_keys = ON")
-    return db
+    # Postgres/Supabase is the only backend. Schema + seed live in
+    # supabase/migrations/. (A SQLite path used to exist for offline dev but
+    # was removed once RBAC moved to role_pages — SQLite had no such tables,
+    # so that path was dead and inconsistent.)
+    return await _pg_connect()
 
 
 class _Connecting:

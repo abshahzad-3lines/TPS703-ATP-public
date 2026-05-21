@@ -2,8 +2,7 @@
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
-import aiosqlite
-from config import settings
+import dbx
 from services.test_engine import engine, InvalidStateTransition, TestRunNotFound, TestRunNotActive, RunState, StepInfo
 from services.execution_runner import start_execution, cancel_execution, trigger_step, set_run_mode, get_run_mode, is_waiting_for_trigger, has_running_task
 from websocket.manager import ws_manager
@@ -11,8 +10,7 @@ from websocket.manager import ws_manager
 
 async def _load_terminal_run_ws(run_id: int) -> RunState | None:
     """Load a terminal-state run from DB for WebSocket display."""
-    async with aiosqlite.connect(settings.DB_PATH) as db:
-        db.row_factory = aiosqlite.Row
+    async with dbx.connect() as db:
         cursor = await db.execute("SELECT * FROM test_runs WHERE id = ?", (run_id,))
         run_row = await cursor.fetchone()
         if run_row is None:

@@ -9,7 +9,7 @@ Web-based Acceptance Test Procedure (ATP) automation system for the TPS-703 rada
 - **UI Library**: shadcn/ui (Radix UI + Tailwind CSS)
 - **Instrument Visualization**: Recharts (structured data) + HTML5 Canvas (waveforms)
 - **State Management**: Zustand
-- **Database**: SQLite via aiosqlite
+- **Database**: Supabase Postgres via asyncpg (through the `dbx` aiosqlite-compatible shim); schema in `supabase/migrations/`
 - **Auth**: JWT (python-jose) + passlib[bcrypt]
 - **Real-time**: WebSocket (FastAPI native)
 - **Equipment I/O**: PyVISA (GPIB/VISA) + SCPI over TCP + zeroconf (mDNS LXI/SCPI-RAW/VXI-11 LAN discovery)
@@ -61,7 +61,7 @@ npm run dev
 - All test results are immutable once recorded
 - HMAC-SHA256 signatures on completed test runs
 - Audit logging on all write operations
-- Role hierarchy: Admin > Engineer > Technician > Viewer
+- DB-driven RBAC: `profiles` → `roles` → `role_pages` (page/feature grants) + `app_pages` registry. `super_admin` bypasses all; `admin` sees every page except Roles & Access; custom roles are scoped by their `role_pages` grants. Managed live from the Roles & Access page.
 - Virtual instrument panels use light gray instrument bezel aesthetic
 - Status colors: Pass=emerald-500, Fail=red-500, Warning=amber-500, Running=blue-500, Pending=slate-500
 - **No fake instruments / no synthesised readings** — panels show `--` when no real reading is available

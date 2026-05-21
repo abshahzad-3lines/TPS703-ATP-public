@@ -7,9 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from config import settings
-from database import get_db_connection, init_db
-from seed_data import seed_all
-from services.equipment_autoregister import reconcile_equipment_with_network
+from database import init_db
 from auth.router import router as auth_router
 from routers.subsystems import router as subsystems_router
 from routers.uuts import router as uuts_router
@@ -33,43 +31,10 @@ async def lifespan(app: FastAPI):
     """Application lifespan: startup and shutdown events."""
     print("ATP System starting")
     await init_db()
-    import dbx
-    if not dbx.is_postgres():
-        # Postgres schema + seed live in supabase/migrations/; only the
-        # SQLite path needs runtime seeding.
-        db = await get_db_connection()
-        await seed_all(db)
-        await db.close()
-    # Reconcile the equipment table against what is actually reachable on
-    # this PC's network — runs BLOCKING (not background) so the table is
-    # guaranteed to be clean before uvicorn starts accepting requests.
-    # The cost is a one-time ~3-5 second pause during startup; the win is
-    # that no UI request or WebSocket can ever open a driver against a
-    # stale ``connection_address`` (e.g. cached 169.254.* IPs from a
-    # different bench). Three passes inside:
-    #   1. Probe every active row's address with a 1.5 s connect — drop
-    #      rows that don't answer.
-    #   2. Discover via PyVISA + mDNS, heal addresses by *IDN? serial.
-    #   3. Deactivate active rows whose serial wasn't discovered.
-    # Result: every is_active=1 row at the end is either probe-reachable
-    # or freshly healed. Discovery failures are swallowed (rows from
-    # pass 1 still survive).
-    import dbx as _dbx
-    if _dbx.is_postgres():
-        # Cloud Postgres deploy has no lab instruments on its network, and the
-        # mDNS/PyVISA reconcile path is SQLite-shaped. Skip it entirely.
-        print("DB backend = postgres; skipping hardware reconcile (no LAN instruments)")
-    else:
-        try:
-            stats = await reconcile_equipment_with_network(mdns_timeout=3.0)
-            print(
-                f"Equipment reconcile complete: discovered={stats['discovered']} "
-                f"unreachable={stats['unreachable']} healed={stats['healed']} "
-                f"inserted={stats['inserted']} deactivated={stats['deactivated']}"
-            )
-        except Exception as exc:  # noqa: BLE001
-            # Never block server startup on a reconcile bug.
-            print(f"Equipment reconcile errored (non-fatal): {exc}")
+    # Schema + seed data (users, roles, subsystems, equipment, procedures)
+    # are owned by supabase/migrations/ and applied via the Supabase CLI.
+    # The cloud Postgres deploy has no lab instruments on its network, so the
+    # mDNS/PyVISA equipment reconcile that runs on a lab PC is not applicable.
     yield
     print("ATP System shutting down")
 

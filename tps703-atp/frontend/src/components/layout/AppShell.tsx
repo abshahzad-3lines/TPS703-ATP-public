@@ -44,11 +44,16 @@ const navItems: {
 ]
 
 const roleColors: Record<string, string> = {
+  super_admin: 'bg-purple-600',
   admin: 'bg-red-500',
   engineer: 'bg-blue-500',
   technician: 'bg-emerald-500',
   viewer: 'bg-slate-500',
 }
+
+/** Avatar background for a role — falls back to slate for custom roles. */
+const roleColor = (role: string | undefined): string =>
+  (role && roleColors[role]) || 'bg-slate-500'
 
 interface AppShellProps {
   children: ReactNode
@@ -201,7 +206,7 @@ export default function AppShell({ children, auth, onLogout }: AppShellProps) {
                         <div
                           className={cn(
                             'h-9 w-9 rounded-full flex items-center justify-center text-white text-xs font-bold cursor-default',
-                            roleColors[user.role],
+                            roleColor(user.role),
                           )}
                         >
                           {user.full_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
@@ -235,7 +240,7 @@ export default function AppShell({ children, auth, onLogout }: AppShellProps) {
                       <div
                         className={cn(
                           'h-9 w-9 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0',
-                          roleColors[user.role],
+                          roleColor(user.role),
                         )}
                       >
                         {user.full_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
