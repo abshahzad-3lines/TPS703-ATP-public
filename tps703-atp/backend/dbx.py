@@ -1,24 +1,23 @@
-"""Database compatibility layer — one interface, two backends.
+"""Supabase Postgres data layer (asyncpg).
 
-The whole codebase was written against ``aiosqlite``'s connection API:
+Supabase Postgres is the one and only backend. This module exposes
+``connect()`` returning a ``PgConnection`` — a thin asyncpg facade that keeps
+the connection API the application code is written against:
 ``await db.execute(sql, params)`` returning a cursor with ``.fetchone()``,
-``.fetchall()``, ``.lastrowid``; plus ``.commit()`` / ``.close()`` and
-``async with`` support.
+``.fetchall()``, ``.lastrowid``, ``.rowcount``; plus ``.commit()`` /
+``.close()`` and ``async with`` support.
 
-To move to Supabase Postgres without rewriting every query, this module
-provides ``connect()`` which returns either:
-  * a real ``aiosqlite`` connection  (DB_BACKEND=sqlite, the default), or
-  * a ``PgConnection`` shim over asyncpg (DB_BACKEND=postgres)
-
-The shim translates SQLite-flavoured SQL to Postgres on the fly:
+The application's SQL is authored in a portable, mostly-ANSI dialect with a
+few non-Postgres quirks; ``_translate()`` rewrites those to Postgres on the
+fly so the queries did not need a line-by-line rewrite:
   ?                      -> $1, $2, ...     (positional params)
   datetime('now')        -> now()
   INSERT OR IGNORE INTO  -> INSERT INTO ... (ON CONFLICT DO NOTHING appended)
-  AUTOINCREMENT/PRAGMA   -> n/a (schema lives in migrations, never executed)
-and auto-appends ``RETURNING id`` to INSERTs so ``cursor.lastrowid`` works.
+  PRAGMA                 -> no-op (schema lives in supabase/migrations/)
+and ``RETURNING id`` is auto-appended to INSERTs so ``cursor.lastrowid`` works.
 
-asyncpg ``Record`` objects already support both ``row['col']`` and
-``row[0]`` access, matching how the code reads rows.
+asyncpg ``Record`` objects support both ``row['col']`` and ``row[0]`` access,
+matching how the code reads rows.
 """
 
 from __future__ import annotations
@@ -28,19 +27,17 @@ import re
 
 from config import settings
 
-# Postgres/Supabase is the only supported backend. The variable is kept
-# (defaulting to "postgres") so is_postgres() stays truthful for any code or
-# tooling that still consults it.
-DB_BACKEND = os.environ.get("DB_BACKEND", "postgres").lower()
-
 # Constraint-violation exception, for callers that translate it into HTTP 409.
 # asyncpg raises subclasses of IntegrityConstraintViolationError (e.g.
-# UniqueViolationError); aiosqlite raised aiosqlite.IntegrityError.
+# UniqueViolationError).
 try:
     from asyncpg.exceptions import IntegrityConstraintViolationError as IntegrityError
+    from asyncpg import Record as Row
 except Exception:  # noqa: BLE001 — asyncpg unavailable in some tooling contexts
     class IntegrityError(Exception):  # type: ignore[no-redef]
         pass
+
+    Row = object  # type: ignore[assignment,misc]
 
 # ---------------------------------------------------------------------------
 # Postgres shim
@@ -59,8 +56,8 @@ async def _init_conn(conn):
     await conn.set_type_codec(
         "uuid", encoder=str, decoder=str, schema="pg_catalog", format="text",
     )
-    # Return timestamps/dates as ISO strings (SQLite returns text), so the
-    # Pydantic response models that type these as `str` keep working.
+    # Return timestamps/dates as ISO strings so the Pydantic response models
+    # that type these fields as `str` keep working.
     for _t in ("timestamptz", "timestamp", "date"):
         await conn.set_type_codec(
             _t, encoder=str, decoder=str, schema="pg_catalog", format="text",
@@ -82,7 +79,7 @@ async def _get_pool():
 
 
 def _translate(sql: str) -> str:
-    """SQLite SQL -> Postgres SQL (dialect bits only)."""
+    """Rewrite the few non-Postgres dialect bits in app SQL to Postgres."""
     s = sql
     # datetime('now') / CURRENT_TIMESTAMP-ish
     s = s.replace("datetime('now')", "now()")
@@ -110,7 +107,7 @@ def _translate(sql: str) -> str:
 
 
 class _PgCursor:
-    """Mimics the bits of an aiosqlite cursor the code uses."""
+    """Mimics the cursor surface the application code relies on."""
 
     def __init__(self, rows: list, lastrowid, rowcount: int = -1):
         self._rows = rows
@@ -125,7 +122,7 @@ class _PgCursor:
 
 
 class PgConnection:
-    """aiosqlite-compatible facade over an asyncpg connection."""
+    """Facade over an asyncpg connection preserving the legacy call style."""
 
     def __init__(self, conn, pool):
         self._conn = conn
@@ -133,7 +130,7 @@ class PgConnection:
         self.row_factory = None  # accepted + ignored (asyncpg Records are dict-like)
 
     async def execute(self, sql: str, params: tuple | list = ()):
-        # SQLite-only statements that have no Postgres equivalent — no-op.
+        # Legacy no-op statements with no Postgres equivalent (e.g. PRAGMA).
         if sql.lstrip().upper().startswith("PRAGMA"):
             return _PgCursor([], None)
         pg_sql = _translate(sql)
@@ -201,16 +198,18 @@ async def _pg_connect() -> PgConnection:
 # ---------------------------------------------------------------------------
 
 
+# Type alias for annotations across the codebase (``db: dbx.Connection``).
+Connection = PgConnection
+
+
 async def _open_connection():
-    # Postgres/Supabase is the only backend. Schema + seed live in
-    # supabase/migrations/. (A SQLite path used to exist for offline dev but
-    # was removed once RBAC moved to role_pages — SQLite had no such tables,
-    # so that path was dead and inconsistent.)
+    # Supabase Postgres is the only backend. Schema + seed live in
+    # supabase/migrations/.
     return await _pg_connect()
 
 
 class _Connecting:
-    """Awaitable + async-context-manager, matching aiosqlite.connect().
+    """Awaitable + async-context-manager connection handle.
 
     Supports both usage styles found in the codebase:
         db = await dbx.connect()        ...  await db.close()
@@ -235,7 +234,3 @@ class _Connecting:
 def connect():
     """Return a connection handle (awaitable + async context manager)."""
     return _Connecting()
-
-
-def is_postgres() -> bool:
-    return DB_BACKEND == "postgres"

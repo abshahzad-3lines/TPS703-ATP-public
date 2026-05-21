@@ -26,8 +26,8 @@ class UserCreate(UserBase):
 class UserInDB(UserBase):
     """User as stored in the database (includes hashed password).
 
-    ``id`` is ``int`` on SQLite (autoincrement) and a ``uuid`` string on
-    Postgres/Supabase (profiles.id), so it accepts both.
+    ``id`` is the ``uuid`` string from ``profiles.id`` on Supabase Postgres.
+    Typed as ``int | str`` so legacy integer-keyed rows still validate.
     """
 
     id: int | str

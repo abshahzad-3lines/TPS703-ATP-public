@@ -6,7 +6,6 @@ as well as retrieving test run history for a specific UUT.
 
 from typing import Optional
 
-import aiosqlite
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 
@@ -84,7 +83,6 @@ async def create_uut(
     ``subsystem_id`` and ``serial_number`` must be unique.
     """
     async with dbx.connect() as db:
-        db.row_factory = aiosqlite.Row
         await db.execute("PRAGMA foreign_keys = ON")
 
         # Verify the referenced subsystem exists
@@ -152,7 +150,6 @@ async def list_uuts(
     Includes subsystem drawing number and name for convenience.
     """
     async with dbx.connect() as db:
-        db.row_factory = aiosqlite.Row
 
         base_query = """
             SELECT
@@ -202,7 +199,6 @@ async def get_uut(
 ) -> UUTDetailResponse:
     """Return a single UUT by ID, including subsystem information."""
     async with dbx.connect() as db:
-        db.row_factory = aiosqlite.Row
 
         cursor = await db.execute(
             """
@@ -255,7 +251,6 @@ async def get_uut_history(
     Joins with ``test_procedures`` to include the procedure code and name.
     """
     async with dbx.connect() as db:
-        db.row_factory = aiosqlite.Row
 
         # First verify the UUT exists
         cursor = await db.execute(

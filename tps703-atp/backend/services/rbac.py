@@ -8,8 +8,8 @@ Mirrors the ai-command-center model:
                     (a page path like '/sparam' or a feature flag
                     'feature:atp-approve').
 
-These helpers are backend-only and read through the dbx shim, so they
-work on both SQLite and Supabase Postgres.
+These helpers are backend-only and read through the dbx layer against
+Supabase Postgres.
 """
 
 from __future__ import annotations

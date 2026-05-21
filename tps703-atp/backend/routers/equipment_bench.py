@@ -13,7 +13,6 @@ import logging
 from datetime import datetime, timezone
 from typing import Any, Optional
 
-import aiosqlite
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.websockets import WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, Field
@@ -83,7 +82,6 @@ class ScpiResponse(BaseModel):
 async def _load_equipment(equipment_id: int) -> dict[str, Any]:
     """Load an equipment row by id; raise 404 if missing."""
     async with dbx.connect() as db:
-        db.row_factory = aiosqlite.Row
         cursor = await db.execute(
             "SELECT * FROM equipment WHERE id = ?", (equipment_id,)
         )

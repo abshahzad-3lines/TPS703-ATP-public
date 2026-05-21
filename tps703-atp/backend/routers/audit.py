@@ -2,7 +2,6 @@
 
 from typing import Optional
 
-import aiosqlite
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 
@@ -119,7 +118,6 @@ async def list_audit_log(
     params.append(limit)
 
     async with dbx.connect() as db:
-        db.row_factory = aiosqlite.Row
         cursor = await db.execute(query, params)
         rows = await cursor.fetchall()
 

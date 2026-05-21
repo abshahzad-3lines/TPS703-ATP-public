@@ -20,7 +20,7 @@ Validation rules:
 
 from __future__ import annotations
 
-import aiosqlite
+import dbx
 
 
 # step_type → required instrument_role (None = no instrument needed)
@@ -82,7 +82,7 @@ MEASUREMENT_STEP_TYPES = {
 
 
 async def validate_definition(
-    db: aiosqlite.Connection,
+    db: dbx.Connection,
     definition_id: int,
     *,
     require_equipment: bool = True,
@@ -178,6 +178,6 @@ async def validate_definition(
     return issues
 
 
-async def validate_for_publish(db: aiosqlite.Connection, definition_id: int) -> list[str]:
+async def validate_for_publish(db: dbx.Connection, definition_id: int) -> list[str]:
     """Stricter check used by the state-machine on transitions into approved/published."""
     return await validate_definition(db, definition_id, require_equipment=True)

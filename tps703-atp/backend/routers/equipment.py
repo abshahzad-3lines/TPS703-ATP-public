@@ -3,7 +3,6 @@
 import logging
 from typing import Optional
 
-import aiosqlite
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 
@@ -124,8 +123,8 @@ class TestConnectionResponse(BaseModel):
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _row_to_response(row: aiosqlite.Row) -> EquipmentResponse:
-    """Convert an aiosqlite Row to an EquipmentResponse."""
+def _row_to_response(row: dbx.Row) -> EquipmentResponse:
+    """Convert a DB row to an EquipmentResponse."""
     # ``instrument_role`` is added by an idempotent migration; older snapshots
     # of the row may not include the key.
     try:
@@ -158,7 +157,6 @@ async def list_equipment(
 ) -> list[EquipmentResponse]:
     """List all equipment records with optional filtering."""
     async with dbx.connect() as db:
-        db.row_factory = aiosqlite.Row
 
         conditions: list[str] = []
         params: list = []
@@ -200,7 +198,6 @@ async def create_equipment(
 ) -> EquipmentResponse:
     """Create a new equipment record. Requires technician role or higher."""
     async with dbx.connect() as db:
-        db.row_factory = aiosqlite.Row
 
         cursor = await db.execute(
             """
@@ -253,7 +250,6 @@ async def get_equipment(
 ) -> EquipmentResponse:
     """Get a single equipment record by ID."""
     async with dbx.connect() as db:
-        db.row_factory = aiosqlite.Row
         cursor = await db.execute(
             "SELECT * FROM equipment WHERE id = ?", (equipment_id,)
         )
@@ -280,7 +276,6 @@ async def update_equipment(
 ) -> EquipmentResponse:
     """Update an existing equipment record. Requires engineer role or higher."""
     async with dbx.connect() as db:
-        db.row_factory = aiosqlite.Row
 
         # Check equipment exists
         cursor = await db.execute(
@@ -346,7 +341,6 @@ async def delete_equipment(
 ) -> dict:
     """Soft-delete an equipment record (set is_active=0). Requires admin role."""
     async with dbx.connect() as db:
-        db.row_factory = aiosqlite.Row
 
         cursor = await db.execute(
             "SELECT * FROM equipment WHERE id = ?", (equipment_id,)
@@ -394,7 +388,6 @@ async def test_connection(
     call connect() + identify(), and returns the IDN string or error.
     """
     async with dbx.connect() as db:
-        db.row_factory = aiosqlite.Row
         cursor = await db.execute(
             "SELECT * FROM equipment WHERE id = ?", (equipment_id,)
         )
@@ -547,7 +540,6 @@ async def auto_register_equipment(
     created: list[EquipmentResponse] = []
 
     async with dbx.connect() as db:
-        db.row_factory = aiosqlite.Row
 
         cursor = await db.execute(
             "SELECT serial_number FROM equipment WHERE serial_number IS NOT NULL AND is_active = 1"

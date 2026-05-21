@@ -2,9 +2,8 @@
 
 Why this exists
 ---------------
-The ``atp.db`` file persists in ``%APPDATA%\\TPS-703\\atp.db`` across upgrades,
-so every PC that has ever run the EXE inherits whatever ``connection_address``
-values were cached the last time someone used it. On a different bench those
+The ``equipment`` table carries whatever ``connection_address`` values were
+recorded the last time someone used a given bench. On a different bench those
 addresses are unreachable and every step measurement fails with ``WinError
 10051`` before the operator can do anything about it.
 
@@ -40,7 +39,6 @@ import asyncio
 import logging
 from typing import Any, Optional
 
-import aiosqlite
 
 import dbx
 from config import settings
@@ -68,7 +66,7 @@ def _resolve_address(entry: dict[str, Any]) -> str:
     return entry.get("resource") or ""
 
 
-async def _probe_one_row(row: aiosqlite.Row) -> bool:
+async def _probe_one_row(row: dbx.Row) -> bool:
     """Return True if *row* is reachable on its stored address.
 
     Builds a driver via :class:`DriverFactory`, calls ``connect()`` with a
@@ -115,7 +113,7 @@ async def _probe_one_row(row: aiosqlite.Row) -> bool:
                 pass
 
 
-async def _log_table_snapshot(db: aiosqlite.Connection, label: str) -> None:
+async def _log_table_snapshot(db: dbx.Connection, label: str) -> None:
     """Dump the current equipment table to the log so troubleshooting is easy."""
     cursor = await db.execute(
         """SELECT id, name, model, serial_number,
@@ -156,7 +154,6 @@ async def reconcile_equipment_with_network(mdns_timeout: float = 3.0) -> dict[st
     }
 
     async with dbx.connect() as db:
-        db.row_factory = aiosqlite.Row
         await db.execute("PRAGMA foreign_keys = ON")
 
         await _log_table_snapshot(db, "before reconcile")
@@ -213,7 +210,6 @@ async def reconcile_equipment_with_network(mdns_timeout: float = 3.0) -> dict[st
             by_serial[sn] = entry
 
     async with dbx.connect() as db:
-        db.row_factory = aiosqlite.Row
         await db.execute("PRAGMA foreign_keys = ON")
 
         for sn, entry in by_serial.items():

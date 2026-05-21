@@ -5,7 +5,7 @@ and representative test steps from the ATP documents. Uses INSERT OR IGNORE to
 allow safe re-runs without duplicating data.
 """
 
-import aiosqlite
+import dbx
 
 
 # ---------------------------------------------------------------------------
@@ -1804,7 +1804,7 @@ _STEP_COLUMNS = [
 ]
 
 
-async def _seed_subsystems(db: aiosqlite.Connection) -> dict[str, int]:
+async def _seed_subsystems(db: dbx.Connection) -> dict[str, int]:
     """Insert subsystem rows and return {drawing_no: id} mapping."""
     mapping: dict[str, int] = {}
 
@@ -1832,7 +1832,7 @@ async def _seed_subsystems(db: aiosqlite.Connection) -> dict[str, int]:
 
 
 async def _seed_procedures(
-    db: aiosqlite.Connection, subsystem_map: dict[str, int]
+    db: dbx.Connection, subsystem_map: dict[str, int]
 ) -> dict[str, int]:
     """Insert procedure rows and return {code: id} mapping."""
     mapping: dict[str, int] = {}
@@ -1870,7 +1870,7 @@ async def _seed_procedures(
 
 
 async def _seed_steps(
-    db: aiosqlite.Connection, procedure_map: dict[str, int]
+    db: dbx.Connection, procedure_map: dict[str, int]
 ) -> int:
     """Insert test steps for procedures that have step generators.
 
@@ -1976,7 +1976,7 @@ def _build_sg_setup_step(
 
 
 async def _seed_sg_setup(
-    db: aiosqlite.Connection, procedure_map: dict[str, int],
+    db: dbx.Connection, procedure_map: dict[str, int],
 ) -> int:
     """Idempotently prepend an ``sg_setup`` step to every RF-driving procedure.
 
@@ -2036,7 +2036,7 @@ async def _seed_sg_setup(
 # Public API
 # ---------------------------------------------------------------------------
 
-async def seed_all(db: aiosqlite.Connection) -> None:
+async def seed_all(db: dbx.Connection) -> None:
     """Seed all subsystem definitions, procedures, test steps, and equipment.
 
     Safe to call on every startup — uses INSERT OR IGNORE to avoid duplicates.

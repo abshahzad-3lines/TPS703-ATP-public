@@ -23,7 +23,6 @@ import logging
 import socket
 from typing import Any
 
-import aiosqlite
 
 import dbx
 from config import settings
@@ -469,7 +468,6 @@ async def _registered_serials_and_resources() -> tuple[set[str], set[str]]:
     """
     try:
         async with dbx.connect() as db:
-            db.row_factory = aiosqlite.Row
             cursor = await db.execute(
                 "SELECT serial_number, connection_address FROM equipment WHERE is_active = 1"
             )

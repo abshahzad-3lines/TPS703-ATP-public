@@ -3,7 +3,6 @@
 import csv
 import io
 
-import aiosqlite
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import Response
 
@@ -40,7 +39,6 @@ async def export_results_csv(
     Requires at least **viewer** role (any authenticated user).
     """
     async with dbx.connect() as db:
-        db.row_factory = aiosqlite.Row
 
         # ------------------------------------------------------------------
         # 1. Fetch run metadata with joins

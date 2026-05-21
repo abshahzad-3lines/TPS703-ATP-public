@@ -5,7 +5,6 @@ import hmac
 from datetime import datetime, timezone
 from typing import Optional
 
-import aiosqlite
 
 import dbx
 from config import settings

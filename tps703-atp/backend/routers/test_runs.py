@@ -5,7 +5,6 @@ import hmac as hmac_mod
 from datetime import datetime, timezone
 from typing import Optional
 
-import aiosqlite
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 
@@ -32,7 +31,6 @@ router = APIRouter(prefix="/api/test-runs", tags=["test-runs"])
 async def _load_terminal_run(run_id: int) -> RunState:
     """Load a terminal-state run from DB as a read-only snapshot."""
     async with dbx.connect() as db:
-        db.row_factory = aiosqlite.Row
         cursor = await db.execute("SELECT * FROM test_runs WHERE id = ?", (run_id,))
         run_row = await cursor.fetchone()
         if run_row is None:
@@ -197,7 +195,6 @@ async def create_test_run(
     """
     # --- Enforce calibration requirement ---
     async with dbx.connect() as db:
-        db.row_factory = aiosqlite.Row
         cursor = await db.execute(
             """SELECT tp.requires_calibration, tp.subsystem_id, tp.code
                FROM test_procedures tp WHERE tp.id = ?""",
@@ -208,7 +205,6 @@ async def create_test_run(
     if proc_row and proc_row["requires_calibration"]:
         sub_id = proc_row["subsystem_id"]
         async with dbx.connect() as db:
-            db.row_factory = aiosqlite.Row
             cursor = await db.execute(
                 """SELECT id FROM calibrations
                    WHERE subsystem_id = ?
@@ -251,7 +247,6 @@ async def create_test_run(
 
     # Fetch the created row from the database for the response
     async with dbx.connect() as db:
-        db.row_factory = aiosqlite.Row
         cursor = await db.execute(
             "SELECT * FROM test_runs WHERE id = ?", (run_id,)
         )
@@ -285,7 +280,6 @@ async def get_recent_test_runs(
     Used by the dashboard's RecentTestsTable component.
     """
     async with dbx.connect() as db:
-        db.row_factory = aiosqlite.Row
         cursor = await db.execute(
             """
             SELECT
@@ -345,7 +339,6 @@ async def get_test_run(
 ) -> TestRunResponse:
     """Return a single test run by ID from the database."""
     async with dbx.connect() as db:
-        db.row_factory = aiosqlite.Row
         cursor = await db.execute(
             "SELECT * FROM test_runs WHERE id = ?", (run_id,)
         )
@@ -404,7 +397,6 @@ async def get_test_run_state(
 
     # Fetch joined metadata for the data sheet header
     async with dbx.connect() as db:
-        db.row_factory = aiosqlite.Row
         cursor = await db.execute(
             """
             SELECT
@@ -612,7 +604,6 @@ async def verify_test_run_integrity(
     Requires at least the **engineer** role.
     """
     async with dbx.connect() as db:
-        db.row_factory = aiosqlite.Row
 
         # Load the test run
         cursor = await db.execute(
@@ -761,7 +752,6 @@ async def get_result_detail(
     test_results, and test_steps to produce a complete data sheet view.
     """
     async with dbx.connect() as db:
-        db.row_factory = aiosqlite.Row
 
         # Fetch run metadata with joins
         cursor = await db.execute(

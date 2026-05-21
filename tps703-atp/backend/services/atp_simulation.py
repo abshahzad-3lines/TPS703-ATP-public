@@ -15,14 +15,14 @@ from __future__ import annotations
 
 import json
 
-import aiosqlite
+import dbx
 
 from auth.models import UserInDB
 from drivers.simulator import SimulatorDriver
 
 
 async def simulate_definition(
-    db: aiosqlite.Connection,
+    db: dbx.Connection,
     definition_id: int,
     user: UserInDB,
 ) -> dict:

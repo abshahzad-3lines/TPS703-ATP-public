@@ -9,7 +9,7 @@ Web-based Acceptance Test Procedure (ATP) automation system for the TPS-703 rada
 - **UI Library**: shadcn/ui (Radix UI + Tailwind CSS)
 - **Instrument Visualization**: Recharts (structured data) + HTML5 Canvas (waveforms)
 - **State Management**: Zustand
-- **Database**: Supabase Postgres via asyncpg (through the `dbx` aiosqlite-compatible shim); schema in `supabase/migrations/`
+- **Database**: Supabase Postgres via asyncpg (through the `dbx` connection layer); schema in `supabase/migrations/`. SQLite/aiosqlite fully removed.
 - **Auth**: JWT (python-jose) + passlib[bcrypt]
 - **Real-time**: WebSocket (FastAPI native)
 - **Equipment I/O**: PyVISA (GPIB/VISA) + SCPI over TCP + zeroconf (mDNS LXI/SCPI-RAW/VXI-11 LAN discovery)

@@ -3,7 +3,6 @@
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-import aiosqlite
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 
@@ -114,7 +113,6 @@ async def create_calibration(
     to the current UTC time and ``expires_at`` to 24 hours later.
     """
     async with dbx.connect() as db:
-        db.row_factory = aiosqlite.Row
         await db.execute("PRAGMA foreign_keys = ON")
 
         # Verify subsystem exists
@@ -264,7 +262,6 @@ async def get_calibration_parameters(
     from seed_data import CALIBRATION_PARAMETERS
 
     async with dbx.connect() as db:
-        db.row_factory = aiosqlite.Row
         cursor = await db.execute(
             "SELECT id, drawing_no, name FROM subsystems WHERE id = ?",
             (subsystem_id,),
@@ -319,7 +316,6 @@ async def get_valid_calibration(
     time remaining until expiry in both seconds and a human-readable string.
     """
     async with dbx.connect() as db:
-        db.row_factory = aiosqlite.Row
         await db.execute("PRAGMA foreign_keys = ON")
 
         # Verify subsystem exists

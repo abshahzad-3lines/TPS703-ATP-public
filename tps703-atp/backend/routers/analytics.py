@@ -2,7 +2,6 @@
 
 from typing import Optional
 
-import aiosqlite
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 
@@ -72,7 +71,6 @@ async def get_analytics_summary(
     """Return KPI summary for the dashboard."""
 
     async with dbx.connect() as db:
-        db.row_factory = aiosqlite.Row
 
         # 30-day stats
         cursor = await db.execute(
@@ -155,7 +153,6 @@ async def get_daily_trend(
     """Return daily pass/fail counts and pass rate."""
 
     async with dbx.connect() as db:
-        db.row_factory = aiosqlite.Row
 
         cursor = await db.execute(
             f"""
@@ -204,7 +201,6 @@ async def get_subsystem_breakdown(
     """Return per-subsystem pass/fail breakdown."""
 
     async with dbx.connect() as db:
-        db.row_factory = aiosqlite.Row
 
         cursor = await db.execute(
             f"""
@@ -258,7 +254,6 @@ async def get_top_failures(
     """Return the most frequently-failing test steps."""
 
     async with dbx.connect() as db:
-        db.row_factory = aiosqlite.Row
 
         cursor = await db.execute(
             f"""

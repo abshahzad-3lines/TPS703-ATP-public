@@ -17,7 +17,6 @@ Rules:
 
 from __future__ import annotations
 
-import aiosqlite
 from fastapi import HTTPException, status
 
 from auth.models import UserInDB
@@ -43,7 +42,7 @@ def _has_role(user: UserInDB, min_role: str) -> bool:
     return ROLE_HIERARCHY.index(user.role) >= ROLE_HIERARCHY.index(min_role)
 
 
-async def _get_definition(db: aiosqlite.Connection, definition_id: int) -> aiosqlite.Row:
+async def _get_definition(db: dbx.Connection, definition_id: int) -> dbx.Row:
     cur = await db.execute(
         "SELECT * FROM atp_definitions WHERE id = ?", (definition_id,)
     )
@@ -94,7 +93,6 @@ async def transition(
         )
 
     async with dbx.connect() as db:
-        db.row_factory = aiosqlite.Row
         await db.execute("PRAGMA foreign_keys = ON")
 
         row = await _get_definition(db, definition_id)
@@ -233,7 +231,6 @@ async def create_new_revision(
     auto-bumps (A → B → … → Z → AA) when ``new_revision`` is not given.
     """
     async with dbx.connect() as db:
-        db.row_factory = aiosqlite.Row
         await db.execute("PRAGMA foreign_keys = ON")
 
         src = await _get_definition(db, source_definition_id)

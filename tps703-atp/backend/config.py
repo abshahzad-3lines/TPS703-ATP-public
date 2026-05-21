@@ -32,8 +32,7 @@ class Settings:
     """Application settings."""
 
     SECRET_KEY: str = os.environ.get("SECRET_KEY", "dev-secret-change-in-production")
-    DB_PATH: str = os.environ.get("DB_PATH", "atp.db")
-    DB_BACKEND: str = os.environ.get("DB_BACKEND", "sqlite")
+    # Supabase Postgres connection string (asyncpg DSN). Required at runtime.
     DATABASE_URL: str = os.environ.get("DATABASE_URL", "")
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7

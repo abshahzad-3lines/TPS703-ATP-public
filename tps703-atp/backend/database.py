@@ -10,7 +10,7 @@ import dbx
 
 
 async def get_db_connection():
-    """Return a DB connection (the aiosqlite-compatible Postgres shim)."""
+    """Return a Supabase Postgres connection (via the dbx asyncpg layer)."""
     return await dbx.connect()
 
 

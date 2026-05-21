@@ -30,7 +30,7 @@ import hmac
 import json
 from datetime import datetime, timezone
 
-import aiosqlite
+import dbx
 
 from auth.models import UserInDB
 from config import settings
@@ -46,7 +46,7 @@ _EXCLUDED_DEF_COLUMNS = {
 _EXCLUDED_STEP_COLUMNS = {"id", "definition_id", "legacy_step_id"}
 
 
-def _row_to_dict(row: aiosqlite.Row, exclude: set[str]) -> dict:
+def _row_to_dict(row: dbx.Row, exclude: set[str]) -> dict:
     return {k: row[k] for k in row.keys() if k not in exclude}
 
 
@@ -64,7 +64,7 @@ def _sign(payload: dict) -> dict:
     return {"alg": "HMAC-SHA256", "payload_sha256": sha, "hmac": mac}
 
 
-async def export_bundle(db: aiosqlite.Connection, definition_id: int, user: UserInDB) -> dict:
+async def export_bundle(db: dbx.Connection, definition_id: int, user: UserInDB) -> dict:
     cur = await db.execute(
         "SELECT * FROM atp_definitions WHERE id = ?", (definition_id,)
     )
@@ -120,7 +120,7 @@ def verify_signature(bundle: dict) -> tuple[bool, str | None]:
 
 
 async def import_bundle(
-    db: aiosqlite.Connection,
+    db: dbx.Connection,
     bundle: dict,
     user: UserInDB,
     *,

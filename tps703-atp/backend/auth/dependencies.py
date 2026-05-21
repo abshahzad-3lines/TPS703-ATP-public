@@ -2,7 +2,6 @@
 
 from typing import Callable
 
-import aiosqlite
 from fastapi import Header, HTTPException, status
 from jose import JWTError, jwt
 
@@ -52,7 +51,6 @@ async def get_current_user(
 
     # Look up user in the database
     async with dbx.connect() as db:
-        db.row_factory = aiosqlite.Row
         cursor = await db.execute(
             "SELECT * FROM users WHERE username = ?", (username,)
         )

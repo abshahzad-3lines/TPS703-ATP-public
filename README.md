@@ -94,7 +94,7 @@ The system manages acceptance testing for **four S-band (2.8--3.1 GHz) radar sub
 | Component | Technology |
 |-----------|------------|
 | Framework | Python 3.11+ / FastAPI |
-| Database | SQLite via aiosqlite |
+| Database | Supabase Postgres via asyncpg (schema in supabase/migrations/) |
 | Authentication | JWT (python-jose) + passlib[bcrypt] |
 | PDF Generation | reportlab |
 | Equipment I/O | PyVISA (GPIB/VISA) + SCPI over TCP |
@@ -147,7 +147,7 @@ TPS703-ATP/
     |-- backend/
     |   |-- main.py                    # FastAPI app with CORS and lifespan
     |   |-- config.py                  # Application settings
-    |   |-- database.py                # SQLite connection and schema (12 tables)
+    |   |-- database.py                # Supabase Postgres connection layer (dbx)
     |   |-- seed_data.py               # Subsystem/procedure/step seed data
     |   |-- requirements.txt           # Python dependencies
     |   |-- pytest.ini                 # Test configuration
@@ -365,7 +365,7 @@ FastAPI provides interactive API documentation automatically:
 
 ## Database Schema
 
-The system uses SQLite with 12 tables:
+The schema lives in `supabase/migrations/` (Supabase Postgres). Core tables:
 
 | Table | Purpose |
 |-------|---------|
@@ -422,9 +422,9 @@ The system uses SQLite with 12 tables:
 +-------------------+-----+-----+-------------------+
                     |           |
           +---------v--+  +----v-----------+
-          |  SQLite DB  |  |  Instruments   |
-          |  (aiosqlite)|  |  GPIB / TCP    |
-          |  12 tables  |  |  SCPI / VISA   |
+          |  Supabase   |  |  Instruments   |
+          |  Postgres   |  |  GPIB / TCP    |
+          |  (asyncpg)  |  |  SCPI / VISA   |
           +-------------+  +----------------+
 ```
 
@@ -445,7 +445,7 @@ The system uses SQLite with 12 tables:
 
 ### Local Development (Current Setup)
 
-The system runs as two local processes (backend on port 8005, frontend on port 5173) with SQLite as the database. Use `start.bat` on Windows for one-click startup.
+The system runs as two local processes (backend on port 8005, frontend on port 5173) with Supabase Postgres as the database (DATABASE_URL points at the Supabase pooler). Use `start.bat` on Windows for one-click startup.
 
 ### Docker Deployment
 
@@ -471,7 +471,7 @@ COPY --from=build /app/dist /usr/share/nginx/html
 EXPOSE 80
 ```
 
-Use Docker Compose to orchestrate both services together, mapping ports and mounting the SQLite database volume.
+Use Docker Compose to orchestrate both services together, mapping ports; the database is Supabase Postgres (no local volume needed).
 
 ### Cloud Deployment
 
@@ -481,7 +481,7 @@ The application can be deployed to platforms such as:
 - **Railway** -- Deploy both services from a monorepo with separate service definitions.
 - **Azure App Service / AWS ECS** -- Containerized deployment using the Dockerfiles above.
 
-> **Note:** For production deployments, consider migrating from SQLite to PostgreSQL and adding HTTPS termination.
+> **Note:** The database is Supabase Postgres; for production add HTTPS termination and set DATABASE_URL to the Supabase connection pooler.
 
 ---
 

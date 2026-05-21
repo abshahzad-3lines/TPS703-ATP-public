@@ -5,7 +5,6 @@ import hmac
 from datetime import datetime, timezone
 from typing import Optional
 
-import aiosqlite
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import Response
 from pydantic import BaseModel
@@ -114,7 +113,6 @@ async def list_results(
     params.append(limit)
 
     async with dbx.connect() as db:
-        db.row_factory = aiosqlite.Row
         cursor = await db.execute(
             f"""
             SELECT
@@ -184,7 +182,6 @@ async def get_result_summary(
     pass/fail/warning/skipped counts and an overall verdict.
     """
     async with dbx.connect() as db:
-        db.row_factory = aiosqlite.Row
 
         cursor = await db.execute(
             """
@@ -359,7 +356,6 @@ async def sign_test_run(
     state (passed or failed) and must not already be signed.
     """
     async with dbx.connect() as db:
-        db.row_factory = aiosqlite.Row
         cursor = await db.execute(
             "SELECT * FROM test_runs WHERE id = ?", (run_id,)
         )
@@ -421,7 +417,6 @@ async def get_signature(
 ) -> SignatureDetailResponse:
     """Return the digital signature details for a signed test run."""
     async with dbx.connect() as db:
-        db.row_factory = aiosqlite.Row
         cursor = await db.execute(
             """
             SELECT tr.id, tr.signed_by, tr.signature_hash,

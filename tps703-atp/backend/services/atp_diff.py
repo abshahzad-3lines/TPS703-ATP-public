@@ -10,7 +10,7 @@ a side-by-side redline without re-parsing.
 
 from __future__ import annotations
 
-import aiosqlite
+import dbx
 
 
 _DEF_FIELDS = (
@@ -29,7 +29,7 @@ _STEP_FIELDS = (
 
 
 async def diff_definitions(
-    db: aiosqlite.Connection,
+    db: dbx.Connection,
     base_id: int,
     target_id: int,
 ) -> dict:

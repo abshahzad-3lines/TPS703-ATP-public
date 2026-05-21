@@ -3,7 +3,6 @@
 import asyncio
 import logging
 
-import aiosqlite
 
 import dbx
 from config import settings

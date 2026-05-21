@@ -19,14 +19,14 @@ services:
         generateValue: true
       - key: PYTHON_ENV
         value: production
-      # Render free tier does not allow attaching persistent disks, so the
-      # DB lives in the container's writable layer at /app/atp.db. Data
-      # is wiped on every redeploy/restart, but seed_all() repopulates
-      # the 4 subsystems + 23 migrated ATPs from the seed module on boot.
-      # On a paid plan, change DB_PATH to /data/atp.db and uncomment the
-      # `disk:` block at the bottom of this service.
-      - key: DB_PATH
-        value: /app/atp.db
+      # Supabase Postgres is the database. The schema + seed data live in
+      # supabase/migrations/ and are applied via the Supabase CLI. The app is
+      # stateless — nothing is stored in the container, so the free tier's
+      # ephemeral filesystem is fine. Set DATABASE_URL to the Supabase
+      # connection pooler DSN (transaction pooler / port 6543) in the Render
+      # dashboard; it's a secret so it isn't committed here.
+      - key: DATABASE_URL
+        sync: false
       - key: CORS_ORIGINS
         value: https://tps703-atp-cu9j.onrender.com
       # GROQ_API_KEY must be set manually via the Render dashboard or CLI
@@ -36,8 +36,3 @@ services:
         sync: false
       - key: GROQ_MODEL
         value: llama-3.3-70b-versatile
-    # Persistent disk — paid plans only. Uncomment when upgrading.
-    # disk:
-    #   name: atp-data
-    #   mountPath: /data
-    #   sizeGB: 1

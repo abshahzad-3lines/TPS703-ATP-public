@@ -19,7 +19,6 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Optional
 
-import aiosqlite
 
 import dbx
 from config import settings
@@ -162,7 +161,7 @@ class RunState:
 
 
 class TestEngine:
-    """Manages active test runs with an in-memory state dict backed by SQLite."""
+    """Manages active test runs with an in-memory state dict backed by the database."""
 
     def __init__(self) -> None:
         self._active_runs: dict[int, RunState] = {}
@@ -202,7 +201,6 @@ class TestEngine:
             TestRunNotFound: If the procedure or UUT does not exist.
         """
         async with dbx.connect() as db:
-            db.row_factory = aiosqlite.Row
             await db.execute("PRAGMA foreign_keys = ON")
 
             # Validate procedure exists
@@ -391,7 +389,6 @@ class TestEngine:
         completion timestamp.
         """
         async with dbx.connect() as db:
-            db.row_factory = aiosqlite.Row
             cursor = await db.execute(
                 """SELECT tr.integrity_hash
                    FROM test_results tr
@@ -466,7 +463,6 @@ class TestEngine:
             return self._active_runs[run_id]
 
         async with dbx.connect() as db:
-            db.row_factory = aiosqlite.Row
             cursor = await db.execute(
                 "SELECT * FROM test_runs WHERE id = ?", (run_id,)
             )

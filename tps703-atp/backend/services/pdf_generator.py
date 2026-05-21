@@ -8,7 +8,6 @@ import io
 from datetime import datetime, timezone
 from typing import Any
 
-import aiosqlite
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter, landscape
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -38,7 +37,6 @@ CAGE_CODE = "97942"
 async def _fetch_run_data(run_id: int) -> dict[str, Any] | None:
     """Fetch all data needed for the certificate from the database."""
     async with dbx.connect() as db:
-        db.row_factory = aiosqlite.Row
 
         # Test run
         cursor = await db.execute("SELECT * FROM test_runs WHERE id = ?", (run_id,))

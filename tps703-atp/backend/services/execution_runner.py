@@ -18,7 +18,6 @@ import asyncio
 import logging
 from typing import Optional
 
-import aiosqlite
 
 import dbx
 from config import settings
@@ -227,7 +226,6 @@ async def _equipment_for_role(role: str) -> Optional[dict]:
     Returns ``None`` when no matching active row exists.
     """
     async with dbx.connect() as db:
-        db.row_factory = aiosqlite.Row
         cursor = await db.execute(
             "SELECT * FROM equipment WHERE instrument_role = ? AND is_active = 1 "
             "ORDER BY id LIMIT 1",
