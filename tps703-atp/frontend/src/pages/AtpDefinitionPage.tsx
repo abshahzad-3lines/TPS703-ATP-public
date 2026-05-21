@@ -5,7 +5,8 @@ import {
   getDefinition, addStep, updateStep, deleteStep, reorderSteps,
   transition, validate, submitApproval, simulate, listSimulations,
   aiSafetyWarning, aiOrderReview,
-  STEP_TYPES, STATE_COLORS, SOURCE_LABELS,
+  STATE_COLORS, SOURCE_LABELS,
+  STEP_TYPE_SPECS, STEP_TYPE_GROUPS, BUS_DEFAULT_RW,
   type AtpDefinitionDetail, type AtpStep, type SimulationSummary,
 } from '@/lib/atp'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -23,7 +24,7 @@ import { cn } from '@/lib/utils'
 import {
   ArrowLeft, Save, Plus, Trash2, ChevronUp, ChevronDown, Sparkles,
   Send, Check, X, PlayCircle, Download, AlertCircle,
-  ShieldAlert, CheckCircle2, Clock, GitBranch,
+  ShieldAlert, CheckCircle2, Clock, GitBranch, Info,
 } from 'lucide-react'
 
 type Tab = 'steps' | 'metadata' | 'history' | 'simulation' | 'ai'
@@ -416,6 +417,34 @@ function StepEditorDialog({
     finally { setAiBusy(false) }
   }
 
+  // What fields make sense for the chosen step type (mirrors the backend
+  // validator). Anything not in the spec is hidden AND cleared on change so
+  // we never persist e.g. a frequency on a warm-up step.
+  const spec = STEP_TYPE_SPECS[form.step_type ?? ''] ?? STEP_TYPE_SPECS.voltage
+  const showFreq = spec.stimulus.includes('frequency')
+  const showPower = spec.stimulus.includes('power')
+  const showPulse = spec.stimulus.includes('pulse')
+
+  const changeType = (newType: string) => {
+    const ns = STEP_TYPE_SPECS[newType] ?? STEP_TYPE_SPECS.voltage
+    setForm(f => {
+      const next: Partial<AtpStep> = { ...f, step_type: newType }
+      if (!ns.stimulus.includes('frequency')) next.frequency_mhz = null
+      if (!ns.stimulus.includes('power')) next.input_power_dbm = null
+      if (!ns.stimulus.includes('pulse')) next.pulse_width_us = null
+      if (!ns.measured) {
+        next.unit = null; next.limit_type = null; next.limit_min = null
+        next.limit_max = null; next.limit_nominal = null; next.limit_tolerance = null
+      } else if (!f.unit) {
+        next.unit = ns.defaultUnit ?? null
+      }
+      if (!ns.bus) { next.bus_address = null; next.bus_data = null; next.bus_rw = null }
+      else if (!f.bus_rw) { next.bus_rw = BUS_DEFAULT_RW[newType] ?? null }
+      if (!ns.mux) { next.mux_address = null; next.mux_sample_time_us = null }
+      return next
+    })
+  }
+
   return (
     <Dialog open onOpenChange={(o) => { if (!o) onClose() }}>
       <DialogContent className="max-w-2xl">
@@ -427,21 +456,84 @@ function StepEditorDialog({
           <Field label="Type">
             <select
               value={form.step_type ?? ''}
-              onChange={e => setForm(f => ({ ...f, step_type: e.target.value }))}
+              onChange={e => changeType(e.target.value)}
               className="w-full h-9 px-3 text-sm bg-background border rounded-md"
             >
-              {STEP_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+              {STEP_TYPE_GROUPS.map(({ group, types }) => (
+                <optgroup key={group} label={group}>
+                  {types.map(t => <option key={t} value={t}>{STEP_TYPE_SPECS[t].label}</option>)}
+                </optgroup>
+              ))}
             </select>
           </Field>
+
+          {/* What this step is + which instrument runs it */}
+          <div className="col-span-2 flex items-start gap-2 rounded-md bg-muted/50 border px-3 py-2 text-xs text-muted-foreground">
+            <Info className="size-3.5 mt-0.5 shrink-0 text-blue-600" />
+            <span>
+              {spec.hint}
+              {spec.role && <> {' '}Instrument: <span className="font-mono text-foreground">{spec.role}</span>.</>}
+            </span>
+          </div>
+
           <Field label="Name" className="col-span-2" value={form.name ?? ''} onChange={v => setForm(f => ({ ...f, name: v }))} />
-          <Field label="Frequency (MHz)" type="number" value={form.frequency_mhz ?? ''} onChange={v => setForm(f => ({ ...f, frequency_mhz: v === '' ? null : Number(v) }))} />
-          <Field label="Input power (dBm)" type="number" value={form.input_power_dbm ?? ''} onChange={v => setForm(f => ({ ...f, input_power_dbm: v === '' ? null : Number(v) }))} />
-          <Field label="Pulse width (μs)" type="number" value={form.pulse_width_us ?? ''} onChange={v => setForm(f => ({ ...f, pulse_width_us: v === '' ? null : Number(v) }))} />
-          <Field label="Unit" value={form.unit ?? ''} onChange={v => setForm(f => ({ ...f, unit: v || null }))} />
-          <Field label="Limit min" type="number" value={form.limit_min ?? ''} onChange={v => setForm(f => ({ ...f, limit_min: v === '' ? null : Number(v) }))} />
-          <Field label="Limit max" type="number" value={form.limit_max ?? ''} onChange={v => setForm(f => ({ ...f, limit_max: v === '' ? null : Number(v) }))} />
-          <Field label="Nominal" type="number" value={form.limit_nominal ?? ''} onChange={v => setForm(f => ({ ...f, limit_nominal: v === '' ? null : Number(v) }))} />
-          <Field label="Tolerance" type="number" value={form.limit_tolerance ?? ''} onChange={v => setForm(f => ({ ...f, limit_tolerance: v === '' ? null : Number(v) }))} />
+
+          {/* ---- Stimulus: what we DRIVE INTO the unit ---- */}
+          {(showFreq || showPower || showPulse) && (
+            <SectionLabel>Stimulus · driven into the unit</SectionLabel>
+          )}
+          {showFreq && (
+            <Field label="Frequency (MHz)" type="number" value={form.frequency_mhz ?? ''} onChange={v => setForm(f => ({ ...f, frequency_mhz: v === '' ? null : Number(v) }))} />
+          )}
+          {showPower && (
+            <Field label="Input power (dBm)" type="number" value={form.input_power_dbm ?? ''} onChange={v => setForm(f => ({ ...f, input_power_dbm: v === '' ? null : Number(v) }))} />
+          )}
+          {showPulse && (
+            <Field label="Pulse width (μs)" type="number" value={form.pulse_width_us ?? ''} onChange={v => setForm(f => ({ ...f, pulse_width_us: v === '' ? null : Number(v) }))} />
+          )}
+
+          {/* ---- Measurement: what we READ BACK + its acceptance window ---- */}
+          {spec.measured && (
+            <>
+              <SectionLabel>Measurement · read back &amp; acceptance limits</SectionLabel>
+              <Field label="Unit" value={form.unit ?? ''} onChange={v => setForm(f => ({ ...f, unit: v || null }))} />
+              <div /> {/* spacer to keep limits on their own row */}
+              <Field label="Limit min" type="number" value={form.limit_min ?? ''} onChange={v => setForm(f => ({ ...f, limit_min: v === '' ? null : Number(v) }))} />
+              <Field label="Limit max" type="number" value={form.limit_max ?? ''} onChange={v => setForm(f => ({ ...f, limit_max: v === '' ? null : Number(v) }))} />
+              <Field label="Nominal" type="number" value={form.limit_nominal ?? ''} onChange={v => setForm(f => ({ ...f, limit_nominal: v === '' ? null : Number(v) }))} />
+              <Field label="Tolerance (±)" type="number" value={form.limit_tolerance ?? ''} onChange={v => setForm(f => ({ ...f, limit_tolerance: v === '' ? null : Number(v) }))} />
+            </>
+          )}
+
+          {/* ---- Multiplexer addressing ---- */}
+          {spec.mux && (
+            <>
+              <SectionLabel>Multiplexer</SectionLabel>
+              <Field label="MUX address" value={form.mux_address ?? ''} onChange={v => setForm(f => ({ ...f, mux_address: v || null }))} />
+              <Field label="MUX sample time (μs)" type="number" value={form.mux_sample_time_us ?? ''} onChange={v => setForm(f => ({ ...f, mux_sample_time_us: v === '' ? null : Number(v) }))} />
+            </>
+          )}
+
+          {/* ---- Digital bus addressing ---- */}
+          {spec.bus && (
+            <>
+              <SectionLabel>Digital bus</SectionLabel>
+              <Field label="Bus address" value={form.bus_address ?? ''} onChange={v => setForm(f => ({ ...f, bus_address: v || null }))} />
+              <Field label={form.bus_rw === 'W' ? 'Data to write' : 'Expected data'} value={form.bus_data ?? ''} onChange={v => setForm(f => ({ ...f, bus_data: v || null }))} />
+              <Field label="Direction">
+                <select
+                  value={form.bus_rw ?? 'R'}
+                  onChange={e => setForm(f => ({ ...f, bus_rw: e.target.value }))}
+                  className="w-full h-9 px-3 text-sm bg-background border rounded-md"
+                >
+                  <option value="R">Read</option>
+                  <option value="W">Write</option>
+                </select>
+              </Field>
+            </>
+          )}
+
+          <SectionLabel>Notes</SectionLabel>
           <Field label="Instructions" className="col-span-2">
             <textarea
               value={form.instructions ?? ''}
@@ -467,12 +559,14 @@ function StepEditorDialog({
           </Field>
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" checked={!!form.is_optional} onChange={e => setForm(f => ({ ...f, is_optional: e.target.checked }))} />
-            Optional
+            Optional step
           </label>
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={!!form.is_record_only} onChange={e => setForm(f => ({ ...f, is_record_only: e.target.checked }))} />
-            Record-only (no pass/fail)
-          </label>
+          {spec.measured && (
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={!!form.is_record_only} onChange={e => setForm(f => ({ ...f, is_record_only: e.target.checked }))} />
+              Record-only (capture the reading, no pass/fail)
+            </label>
+          )}
         </div>
         {error && <Alert variant="destructive" className="mt-3"><AlertDescription>{error}</AlertDescription></Alert>}
         <DialogFooter>
@@ -481,6 +575,14 @@ function StepEditorDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  )
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="col-span-2 mt-1 mb-0.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground border-b pb-1">
+      {children}
+    </div>
   )
 }
 
