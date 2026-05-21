@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, type ReactNode } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import LoginPage from '@/pages/LoginPage'
 import DashboardPage from '@/pages/DashboardPage'
@@ -14,18 +14,13 @@ import AtpDefinitionPage from '@/pages/AtpDefinitionPage'
 import AtpDiffPage from '@/pages/AtpDiffPage'
 import SparamListPage from '@/pages/SparamListPage'
 import SparamDetailPage from '@/pages/SparamDetailPage'
+import RolesPage from '@/pages/RolesPage'
 import AppShell from '@/components/layout/AppShell'
 import ProtectedRoute from '@/components/layout/ProtectedRoute'
-import type { AuthState } from '@/contexts/AuthContext'
+import type { AuthState, AuthUser } from '@/contexts/AuthContext'
 import { api } from '@/lib/api'
 
-interface UserInfo {
-  id: number
-  username: string
-  full_name: string
-  role: 'admin' | 'engineer' | 'technician' | 'viewer'
-  badge_id?: string
-}
+type UserInfo = AuthUser
 
 function AppRoutes() {
   const navigate = useNavigate()
@@ -74,139 +69,29 @@ function AppRoutes() {
     )
   }
 
+  const shell = (page: string, node: ReactNode) => (
+    <ProtectedRoute auth={auth} page={page}>
+      <AppShell auth={auth} onLogout={handleLogout}>{node}</AppShell>
+    </ProtectedRoute>
+  )
+
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute isAuthenticated={auth.isAuthenticated} userRole={auth.user?.role}>
-            <AppShell auth={auth} onLogout={handleLogout}>
-              <DashboardPage />
-            </AppShell>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/test-setup"
-        element={
-          <ProtectedRoute isAuthenticated={auth.isAuthenticated} userRole={auth.user?.role} minRole="technician">
-            <AppShell auth={auth} onLogout={handleLogout}>
-              <TestSetupPage />
-            </AppShell>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/test-execution/:runId?"
-        element={
-          <ProtectedRoute isAuthenticated={auth.isAuthenticated} userRole={auth.user?.role} minRole="technician">
-            <AppShell auth={auth} onLogout={handleLogout}>
-              <TestExecutionPage />
-            </AppShell>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/results"
-        element={
-          <ProtectedRoute isAuthenticated={auth.isAuthenticated} userRole={auth.user?.role}>
-            <AppShell auth={auth} onLogout={handleLogout}>
-              <ResultsPage />
-            </AppShell>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/results/:runId"
-        element={
-          <ProtectedRoute isAuthenticated={auth.isAuthenticated} userRole={auth.user?.role}>
-            <AppShell auth={auth} onLogout={handleLogout}>
-              <ResultDetailPage />
-            </AppShell>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/equipment"
-        element={
-          <ProtectedRoute isAuthenticated={auth.isAuthenticated} userRole={auth.user?.role} minRole="technician">
-            <AppShell auth={auth} onLogout={handleLogout}>
-              <EquipmentPage />
-            </AppShell>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/instrument-bench/:equipmentId?"
-        element={
-          <ProtectedRoute isAuthenticated={auth.isAuthenticated} userRole={auth.user?.role} minRole="technician">
-            <AppShell auth={auth} onLogout={handleLogout}>
-              <BenchDispatcher />
-            </AppShell>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/atp-author"
-        element={
-          <ProtectedRoute isAuthenticated={auth.isAuthenticated} userRole={auth.user?.role}>
-            <AppShell auth={auth} onLogout={handleLogout}>
-              <AtpAuthorPage />
-            </AppShell>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/atp-author/diff/:baseId/:targetId"
-        element={
-          <ProtectedRoute isAuthenticated={auth.isAuthenticated} userRole={auth.user?.role}>
-            <AppShell auth={auth} onLogout={handleLogout}>
-              <AtpDiffPage />
-            </AppShell>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/atp-author/:definitionId"
-        element={
-          <ProtectedRoute isAuthenticated={auth.isAuthenticated} userRole={auth.user?.role}>
-            <AppShell auth={auth} onLogout={handleLogout}>
-              <AtpDefinitionPage />
-            </AppShell>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/sparam"
-        element={
-          <ProtectedRoute isAuthenticated={auth.isAuthenticated} userRole={auth.user?.role}>
-            <AppShell auth={auth} onLogout={handleLogout}>
-              <SparamListPage />
-            </AppShell>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/sparam/:sweepId"
-        element={
-          <ProtectedRoute isAuthenticated={auth.isAuthenticated} userRole={auth.user?.role}>
-            <AppShell auth={auth} onLogout={handleLogout}>
-              <SparamDetailPage />
-            </AppShell>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/admin"
-        element={
-          <ProtectedRoute isAuthenticated={auth.isAuthenticated} userRole={auth.user?.role} minRole="admin">
-            <AppShell auth={auth} onLogout={handleLogout}>
-              <AuditTrailPage />
-            </AppShell>
-          </ProtectedRoute>
-        }
-      />
+      <Route path="/dashboard" element={shell('/dashboard', <DashboardPage />)} />
+      <Route path="/test-setup" element={shell('/test-setup', <TestSetupPage />)} />
+      <Route path="/test-execution/:runId?" element={shell('/test-execution', <TestExecutionPage />)} />
+      <Route path="/results" element={shell('/results', <ResultsPage />)} />
+      <Route path="/results/:runId" element={shell('/results', <ResultDetailPage />)} />
+      <Route path="/equipment" element={shell('/equipment', <EquipmentPage />)} />
+      <Route path="/instrument-bench/:equipmentId?" element={shell('/instrument-bench', <BenchDispatcher />)} />
+      <Route path="/atp-author" element={shell('/atp-author', <AtpAuthorPage />)} />
+      <Route path="/atp-author/diff/:baseId/:targetId" element={shell('/atp-author', <AtpDiffPage />)} />
+      <Route path="/atp-author/:definitionId" element={shell('/atp-author', <AtpDefinitionPage />)} />
+      <Route path="/sparam" element={shell('/sparam', <SparamListPage />)} />
+      <Route path="/sparam/:sweepId" element={shell('/sparam', <SparamDetailPage />)} />
+      <Route path="/roles" element={shell('/roles', <RolesPage />)} />
+      <Route path="/admin" element={shell('/admin', <AuditTrailPage />)} />
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   )

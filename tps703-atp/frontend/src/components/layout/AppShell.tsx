@@ -1,6 +1,6 @@
 import { type ReactNode, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { AuthContext } from '@/contexts/AuthContext'
+import { AuthContext, canAccessPage } from '@/contexts/AuthContext'
 import type { AuthState } from '@/contexts/AuthContext'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -21,6 +21,7 @@ import {
   FileText,
   Waves,
   BookOpen,
+  Users,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import logoImg from '@/assets/logo.png'
@@ -29,17 +30,17 @@ const navItems: {
   path: string
   label: string
   icon: LucideIcon
-  minRole?: 'admin' | 'engineer' | 'technician' | 'viewer'
 }[] = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/test-setup', label: 'Test Setup', icon: Settings2 },
   { path: '/test-execution', label: 'Test Execution', icon: Play },
   { path: '/results', label: 'Results', icon: ClipboardList },
-  { path: '/atp-author', label: 'ATP Author', icon: FileText, minRole: 'engineer' },
-  { path: '/sparam', label: 'S-Parameters', icon: Waves, minRole: 'technician' },
-  { path: '/equipment', label: 'Test Equipment', icon: Zap, minRole: 'technician' },
-  { path: '/instrument-bench', label: 'Instrument Bench', icon: Activity, minRole: 'technician' },
-  { path: '/admin', label: 'Admin', icon: ShieldCheck, minRole: 'admin' },
+  { path: '/atp-author', label: 'ATP Author', icon: FileText },
+  { path: '/sparam', label: 'S-Parameters', icon: Waves },
+  { path: '/equipment', label: 'Test Equipment', icon: Zap },
+  { path: '/instrument-bench', label: 'Instrument Bench', icon: Activity },
+  { path: '/roles', label: 'Roles & Access', icon: Users },
+  { path: '/admin', label: 'Admin', icon: ShieldCheck },
 ]
 
 const roleColors: Record<string, string> = {
@@ -47,12 +48,6 @@ const roleColors: Record<string, string> = {
   engineer: 'bg-blue-500',
   technician: 'bg-emerald-500',
   viewer: 'bg-slate-500',
-}
-
-const ROLE_HIERARCHY = ['viewer', 'technician', 'engineer', 'admin']
-
-function hasMinRole(userRole: string, minRole: string): boolean {
-  return ROLE_HIERARCHY.indexOf(userRole) >= ROLE_HIERARCHY.indexOf(minRole)
 }
 
 interface AppShellProps {
@@ -124,7 +119,7 @@ export default function AppShell({ children, auth, onLogout }: AppShellProps) {
             <nav className={cn('flex-1 py-3', collapsed ? 'px-2' : 'px-3')}>
               <div className="flex flex-col gap-1">
                 {navItems
-                  .filter(item => !item.minRole || (user && hasMinRole(user.role, item.minRole)))
+                  .filter(item => canAccessPage(user, item.path))
                   .map(item => {
                     // Find the most specific (longest) matching nav path so that
                     // e.g. /equipment/bench highlights "Equipment Bench" but not "Test Equipment".
